@@ -1,0 +1,143 @@
+# 한빛이노텍 관리자 (Sveltia CMS) 설정 — docs/spec.md 기준
+# 토큰·키는 이 파일에 쓰지 않는다. 로그인은 GitHub 세분화 토큰(PAT)으로 한다.
+
+backend:
+  name: github
+  repo: hanbit595/hopage
+  branch: main
+
+media_folder: uploads
+public_folder: /uploads
+site_url: https://hanbitinnotech.com
+
+collections:
+  # ───────── 회사소식 ─────────
+  - name: notice
+    label: 회사소식
+    label_singular: 회사소식
+    folder: cms/notice
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{year}}{{month}}{{day}}-{{hour}}{{minute}}{{second}}"
+    summary: "{{title}}"
+    sortable_fields: [date, title]
+    fields:
+      - { label: 제목, name: title, widget: string }
+      - { label: 날짜, name: date, widget: datetime, time_format: false, date_format: YYYY-MM-DD, format: YYYY-MM-DD }
+      - { label: 썸네일, name: thumbnail, widget: image, required: false }
+      - { label: 요약, name: summary, widget: text, required: false, hint: "비우면 본문 앞 150자를 검색엔진 설명으로 씁니다." }
+      - { label: 임시저장(비공개), name: draft, widget: boolean, default: false, hint: "공개 저장소이므로 임시저장 글도 외부에서 볼 수 있습니다." }
+      - { label: 본문, name: body, widget: markdown }
+
+  # ───────── 시공사례 ─────────
+  - name: media
+    label: 시공사례
+    label_singular: 시공사례
+    folder: cms/media
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{year}}{{month}}{{day}}-{{hour}}{{minute}}{{second}}"
+    summary: "[{{category}}] {{title}} {{capacity}}"
+    sortable_fields: [date, title]
+    fields:
+      - { label: 현장명, name: title, widget: string }
+      - label: 분류
+        name: category
+        widget: select
+        options: [태양광발전장치, BIPV, 주차장태양광, 기타]
+      - { label: 용량, name: capacity, widget: string, required: false, hint: "예: 99.9kW" }
+      - { label: 사업구분, name: program, widget: string, required: false }
+      - { label: 날짜, name: date, widget: datetime, time_format: false, date_format: YYYY-MM-DD, format: YYYY-MM-DD }
+      - { label: 썸네일, name: thumbnail, widget: image, required: false }
+      - label: 갤러리
+        name: gallery
+        widget: list
+        required: false
+        field: { label: 이미지, name: image, widget: image }
+      - { label: 메인 Our Project 노출, name: featured, widget: boolean, default: false }
+      - { label: 임시저장(비공개), name: draft, widget: boolean, default: false, hint: "공개 저장소이므로 임시저장 글도 외부에서 볼 수 있습니다." }
+      - { label: 본문, name: body, widget: markdown, required: false }
+
+  # ───────── E-Catalog ─────────
+  - name: library
+    label: E-Catalog
+    label_singular: E-Catalog
+    folder: cms/library
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{year}}{{month}}{{day}}-{{hour}}{{minute}}{{second}}"
+    summary: "{{title}}"
+    sortable_fields: [date, title]
+    fields:
+      - { label: 제목, name: title, widget: string }
+      - { label: 날짜, name: date, widget: datetime, time_format: false, date_format: YYYY-MM-DD, format: YYYY-MM-DD }
+      - { label: 썸네일, name: thumbnail, widget: image, required: false }
+      - { label: PDF 파일, name: file, widget: file, accept: application/pdf }
+      - { label: 본문, name: body, widget: markdown, required: false }
+      - { label: 임시저장(비공개), name: draft, widget: boolean, default: false, hint: "공개 저장소이므로 임시저장 글도 외부에서 볼 수 있습니다." }
+
+  # ───────── 사이트 관리 ─────────
+  - name: settings
+    label: 사이트 관리
+    editor:
+      preview: false
+    files:
+      - name: menu
+        label: 메뉴 관리
+        file: cms/settings/menu.yml
+        fields:
+          - label: 대메뉴
+            name: menu
+            widget: list
+            summary: "{{fields.label}}"
+            hint: "대메뉴를 누르면 첫 번째 노출 소메뉴로 이동합니다."
+            fields:
+              - { label: 메뉴명, name: label, widget: string }
+              - { label: 노출, name: visible, widget: boolean, default: true }
+              - label: 소메뉴
+                name: items
+                widget: list
+                summary: "{{fields.label}} → {{fields.link}}"
+                fields:
+                  - { label: 메뉴명, name: label, widget: string }
+                  - { label: 링크, name: link, widget: string, hint: "/로 시작하면 내부 링크, http로 시작하면 외부 링크" }
+                  - { label: 새 창으로 열기, name: new_window, widget: boolean, default: false }
+                  - { label: 노출, name: visible, widget: boolean, default: true }
+
+      - name: site
+        label: 회사정보·기본설정
+        file: cms/settings/site.yml
+        fields:
+          - label: 사업장
+            name: offices
+            widget: list
+            summary: "{{fields.name}}"
+            fields:
+              - { label: 사업장명, name: name, widget: string }
+              - { label: 주소, name: address, widget: string }
+          - { label: 대표전화, name: tel, widget: string }
+          - { label: 이메일, name: email, widget: string }
+          - { label: 회사소개서(PDF), name: brochure, widget: file, accept: application/pdf }
+          - { label: 게시판 페이지당 글 수, name: per_page, widget: number, value_type: int, min: 1, default: 7 }
+          - { label: 검색엔진 설명(SEO), name: seo_description, widget: text }
+
+      - name: popups
+        label: 메인 팝업
+        file: cms/settings/popups.yml
+        fields:
+          - label: 팝업
+            name: popups
+            widget: list
+            required: false
+            summary: "{{fields.title}} ({{fields.start}} ~ {{fields.end}})"
+            hint: "노출 기간은 방문자 브라우저에서 오늘 날짜로 판단합니다."
+            fields:
+              - { label: 제목, name: title, widget: string }
+              - { label: 이미지, name: image, widget: image }
+              - { label: 링크, name: link, widget: string, required: false }
+              - { label: 시작일, name: start, widget: datetime, time_format: false, date_format: YYYY-MM-DD, format: YYYY-MM-DD }
+              - { label: 종료일, name: end, widget: datetime, time_format: false, date_format: YYYY-MM-DD, format: YYYY-MM-DD }
+              - { label: 사용, name: active, widget: boolean, default: true }
