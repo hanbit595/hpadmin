@@ -2,7 +2,7 @@
 
 ## 1. 구조
 - 관리자 화면 저장소: hanbit595/hpadmin (D:\hpadmin) → https://admin.hanbitinnotech.com (GitHub Pages, 가비아 CNAME)
-- 홈페이지 저장소: hanbit595/hopage (D:\homepage) → https://hanbitinnotech.com
+- 홈페이지 저장소: hanbit595/hopage (D:\homepage\site) → https://hanbitinnotech.com
 - 관리자 화면은 Sveltia CMS(https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js, type="module")를 쓰고,
   GitHub 세분화 토큰(PAT) 로그인으로 hopage 저장소에 직접 커밋한다. 인증 서버는 두지 않는다.
 - 저장(커밋) → hopage의 GitHub Actions가 scripts/build.py 실행 → _site 를 Pages로 배포.
