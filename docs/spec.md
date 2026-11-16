@@ -93,6 +93,10 @@ v2.2 변경(2026-11-13, P3-4b): 2절 본문 형식(body_format), 3절 thumbnail�
   + "회사 페이지" files 컬렉션(P4-2: 인증 및 수상·연혁·회사소개·ESG 경영 = hopage cms/pages/*.yml). Contact 는 회사정보(site.yml)로 관리, 별도 메뉴 없음.
   + 영문(P4-EN1, 국문과 완전히 분리): "[EN] 회사 페이지" files 컬렉션(cms/en/pages/cert·history·hanbit·esg·location.yml)과
   "[EN] 회사정보"(cms/en/settings/site.yml). 영문 회사소개 맨 위는 hero.video(동영상). 파일(이미지·동영상)만 국문과 공유.
+  + P4-EN2(2026-11-16): 영문 게시판 3종 folder 컬렉션(cms/en/notice·media·library, 국문과 같은 칸·보존 방식, 영문 시공사례는 title 통째로).
+  메뉴 순서 국문·영문 동일: 게시판(회사소식·시공사례·E-Catalog) → 회사 페이지(인증 및 수상·연혁·회사소개·ESG·Contact) → 사이트 관리.
+  국문 회사 페이지에 Contact(cms/pages/location.yml: 사업장 이름·지도만) 추가. 영문 사이트 관리는 지금 회사정보만(영문 메뉴·팝업은 P4-EN2-B 이후).
+  영문 메뉴 이름은 "[EN] 한국어 (English)" 형식. 게시판 draft 칸 라벨은 "숨김(사이트 비공개)".
 - CNAME: admin.hanbitinnotech.com
 - robots.txt: 모든 크롤러 차단
 - .nojekyll (빈 파일)

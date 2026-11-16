@@ -36,7 +36,7 @@ collections:
       - { label: 날짜, name: date, widget: datetime, format: "YYYY-MM-DD HH:mm:ss", default: "{{now}}", hint: "목록은 날짜·시각 최신순입니다." }
       - { label: 썸네일, name: thumbnail, widget: image, required: false, hint: "목록·메인 News 썸네일 1순위. 비우면 첨부 이미지 → 본문 첫 이미지." }
       - { label: 요약, name: summary, widget: text, required: false, hint: "메인 News 요약과 상세 페이지 검색엔진 설명(meta description)에 우선 사용. 비우면 메인 News는 본문 앞부분, 검색엔진 설명은 회사정보의 기본 설명문을 씁니다." }
-      - { label: 임시저장(비공개), name: draft, widget: boolean, default: false, hint: "켜면 사이트에 나오지 않지만, 공개 저장소이므로 글 내용은 외부에서 볼 수 있습니다." }
+      - { label: 숨김(사이트 비공개), name: draft, widget: boolean, default: false, hint: "켜면 사이트에 나오지 않지만, 공개 저장소이므로 글 내용은 외부에서 볼 수 있습니다." }
       - { label: 본문, name: body, widget: markdown }
       # 기존 글 전용(보존용)
       - { label: 본문 형식, name: body_format, widget: hidden, required: false }
@@ -91,7 +91,7 @@ collections:
       - { label: 메인 Our Project 노출, name: featured, widget: boolean, default: false, hint: "메인 카드는 최대 6건까지 나옵니다." }
       - { label: 메인 카드 순서, name: featured_order, widget: number, value_type: int, min: 1, required: false, hint: "작은 숫자가 먼저. 비우면 날짜 최신순." }
       - { label: 메인 카드 이미지, name: featured_image, widget: image, required: false, hint: "메인 카드 이미지 1순위. 비우면 썸네일 → 기존 규칙." }
-      - { label: 임시저장(비공개), name: draft, widget: boolean, default: false, hint: "켜면 사이트에 나오지 않지만, 공개 저장소이므로 글 내용은 외부에서 볼 수 있습니다." }
+      - { label: 숨김(사이트 비공개), name: draft, widget: boolean, default: false, hint: "켜면 사이트에 나오지 않지만, 공개 저장소이므로 글 내용은 외부에서 볼 수 있습니다." }
       - { label: 본문, name: body, widget: markdown, required: false }
       # 기존 글 전용(보존용)
       - { label: 본문 형식, name: body_format, widget: hidden, required: false }
@@ -119,7 +119,7 @@ collections:
       - { label: 썸네일, name: thumbnail, widget: image, required: false, hint: "목록 썸네일 1순위. 비우면 첨부 이미지 → 본문 첫 이미지." }
       - { label: PDF 파일, name: file, widget: file, accept: application/pdf, hint: "필수. 다운로드 이름은 파일 이름 그대로입니다." }
       - { label: 요약, name: summary, widget: text, required: false, hint: "상세 페이지 검색엔진 설명(meta description)에 우선 사용. 비우면 회사정보의 기본 설명문을 씁니다." }
-      - { label: 임시저장(비공개), name: draft, widget: boolean, default: false, hint: "켜면 사이트에 나오지 않지만, 공개 저장소이므로 글 내용은 외부에서 볼 수 있습니다." }
+      - { label: 숨김(사이트 비공개), name: draft, widget: boolean, default: false, hint: "켜면 사이트에 나오지 않지만, 공개 저장소이므로 글 내용은 외부에서 볼 수 있습니다." }
       - { label: 본문, name: body, widget: markdown, required: false }
       # 기존 글 전용(보존용)
       - { label: 본문 형식, name: body_format, widget: hidden, required: false }
@@ -291,10 +291,32 @@ collections:
                 min: 1
                 field: { label: 항목, name: item, widget: string }
 
+      # ── Contact (/page/location.html) ──
+      - name: location
+        label: Contact
+        file: cms/pages/location.yml
+        fields:
+          - label: 사업장
+            name: locations
+            widget: list
+            min: 1
+            summary: "{{fields.title}}"
+            hint: "여기서는 사업장 이름·지도만 관리합니다. 주소·대표전화·이메일은 '사이트 관리 > 회사정보·기본설정'에서 고치면 Contact 페이지와 하단 푸터에 함께 반영됩니다. 위에서부터 이 순서로 나옵니다."
+            fields:
+              - { label: 연결할 사업장 이름, name: office, widget: string, hint: "회사정보·기본설정의 사업장명과 글자까지 똑같이(다르면 빌드 실패). 주소는 거기서 가져옵니다." }
+              - { label: 작은 영문 제목, name: label, widget: string, hint: "예: Headquarters. & 등 HTML 그대로." }
+              - { label: 사업장 이름, name: title, widget: string, hint: "예: 한빛이노텍 본사" }
+              - label: 구글 지도 삽입 주소
+                name: map
+                widget: string
+                pattern: ['^https://www\.google\.com/maps/embed', "https://www.google.com/maps/embed 로 시작해야 합니다."]
+                hint: "구글 지도 > 공유 > 지도 퍼가기 의 src=\"…\" 안의 주소."
+              - { label: 들여쓰기 칸 수(건드리지 마세요), name: map_indent, widget: number, value_type: int, min: 0, max: 40, required: false, hint: "기존 화면과 글자까지 맞추려고 둔 값입니다. 화면에는 영향 없음." }
+
   # ───────── 사이트 관리 ─────────
   - name: settings
     label: 사이트 관리
-    description: "회사정보·기본설정의 사업장 주소·대표전화·이메일은 Contact 페이지와 하단 푸터에 함께 반영됩니다(Contact 메뉴는 따로 없음)."
+    description: "회사정보·기본설정의 사업장 주소·대표전화·이메일은 Contact 페이지와 하단 푸터에 함께 반영됩니다(Contact 의 사업장 이름·지도는 '회사 페이지 > Contact')."
     editor:
       preview: false
     files:
@@ -333,7 +355,7 @@ collections:
             summary: "{{fields.name}}"
             hint: "Contact 페이지와 하단 푸터(한글 모든 페이지·메인)에 함께 반영됩니다."
             fields:
-              - { label: 사업장명, name: name, widget: string, hint: "Contact 페이지 지도 설정이 이 이름으로 연결되어 있어, 바꾸거나 지우면 빌드가 멈춥니다. 바꿀 때는 관리자에게 요청하세요." }
+              - { label: 사업장명, name: name, widget: string, hint: "'회사 페이지 > Contact'의 연결할 사업장 이름과 연결되어 있어, 한쪽만 바꾸거나 지우면 빌드가 멈춥니다. 바꿀 때는 Contact 쪽도 같이 바꾸세요." }
               - { label: 주소, name: address, widget: string, hint: "Contact 페이지와 하단 푸터에 함께 반영." }
           - { label: 대표전화, name: tel, widget: string, hint: "Contact 페이지와 하단 푸터에 함께 반영. +82-51-913-0120 형식으로 적으면 Contact 에는 051-913-0120 으로 나옵니다." }
           - { label: 이메일, name: email, widget: string, hint: "Contact 페이지와 하단 푸터에 함께 반영." }
@@ -367,6 +389,82 @@ collections:
   # ═════════ 영문(P4-EN1) — 국문과 완전히 분리(hopage cms/en/). 국문 데이터를 읽거나 쓰지 않는다 ═════════
   # 빌드(build/cms_pages.py PAGES_EN)가 읽는 칸을 모두 선언한다. 파일(이미지·동영상)만 국문과 공유한다.
   # 주의: 관리자 화면으로 저장하면 yml 파일 안의 # 설명 주석은 사라진다(내용 안내는 아래 hint 로 옮김).
+
+  # ───────── [EN] 게시판 (P4-EN2: hopage cms/en/<게시판>/*.md, 국문 게시판과 별개) ─────────
+  # 칸 이름은 국문과 같다. 영문 시공사례는 title 을 "[PV] 현장명 용량" 처럼 통째로 쓴다(category·capacity·gallery·featured 칸 없음).
+  # 기존 글 전용 칸(body_format, link1, link2, files)은 국문과 같은 방식으로 보존한다.
+  - name: notice_en
+    label: "[EN] 회사소식 (News)"
+    label_singular: "[EN] 회사소식 (News)"
+    description: "영문 Notice(/en/board/notice/). 국문 회사소식과 별개입니다. 국문 글을 올렸다면 영문도 필요한지 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다. 규정상 비공개 현장은 올리지 마세요(공개 저장소)."
+    folder: cms/en/notice
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{year}}{{month}}{{day}}-{{hour}}{{minute}}{{second}}"
+    summary: "{{title}} ({{date}})"
+    sortable_fields: [date, title]
+    fields:
+      - { label: 제목(영문), name: title, widget: string }
+      - { label: 날짜, name: date, widget: datetime, format: "YYYY-MM-DD HH:mm:ss", default: "{{now}}", hint: "목록은 날짜·시각 최신순입니다." }
+      - { label: 썸네일, name: thumbnail, widget: image, required: false, hint: "목록·영문 메인 News 썸네일 1순위. 비우면 첨부 이미지 → 본문 첫 이미지." }
+      - { label: 요약, name: summary, widget: text, required: false, hint: "영문 메인 News 요약과 상세 페이지 검색엔진 설명(meta description)에 우선 사용." }
+      - { label: 숨김(사이트 비공개), name: draft, widget: boolean, default: false, hint: "켜면 사이트에 나오지 않지만, 공개 저장소이므로 글 내용은 외부에서 볼 수 있습니다." }
+      - { label: 본문, name: body, widget: markdown }
+      # 기존 글 전용(보존용)
+      - { label: 본문 형식, name: body_format, widget: hidden, required: false }
+      - { label: 관련 링크1, name: link1, widget: hidden, required: false }
+      - { label: 관련 링크2, name: link2, widget: hidden, required: false }
+      - *files_field
+
+  - name: media_en
+    label: "[EN] 시공사례 (Projects)"
+    label_singular: "[EN] 시공사례 (Projects)"
+    description: "영문 Project Cases(/en/board/media/). 국문 시공사례와 별개입니다. 국문 글을 올렸다면 영문도 필요한지 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다. 규정상 비공개 현장은 올리지 마세요(공개 저장소)."
+    folder: cms/en/media
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{year}}{{month}}{{day}}-{{hour}}{{minute}}{{second}}"
+    summary: "{{title}} ({{date}})"
+    sortable_fields: [date, title]
+    fields:
+      - { label: 제목(영문), name: title, widget: string, hint: "분류·현장명·용량을 한 줄로 통째로 적습니다. 예: [PV] Geumsaem Elementary School 49.68kW. 규정상 비공개 현장은 올리지 마세요." }
+      - { label: 날짜, name: date, widget: datetime, format: "YYYY-MM-DD HH:mm:ss", default: "{{now}}", hint: "목록은 날짜·시각 최신순입니다." }
+      - { label: 썸네일, name: thumbnail, widget: image, required: false, hint: "목록 썸네일 1순위. 비우면 첨부 이미지 → 본문 첫 이미지. 국문에서 올린 사진을 선택해도 됩니다." }
+      - { label: 요약, name: summary, widget: text, required: false, hint: "상세 페이지 검색엔진 설명(meta description)에 우선 사용." }
+      - { label: 숨김(사이트 비공개), name: draft, widget: boolean, default: false, hint: "켜면 사이트에 나오지 않지만, 공개 저장소이므로 글 내용은 외부에서 볼 수 있습니다." }
+      - { label: 본문, name: body, widget: markdown, required: false }
+      # 기존 글 전용(보존용)
+      - { label: 본문 형식, name: body_format, widget: hidden, required: false }
+      - { label: 관련 링크1, name: link1, widget: hidden, required: false }
+      - { label: 관련 링크2, name: link2, widget: hidden, required: false }
+      - *files_field
+
+  - name: library_en
+    label: "[EN] E-Catalog"
+    label_singular: "[EN] E-Catalog"
+    description: "영문 E-Catalog(/en/board/library/). 국문 E-Catalog 와 별개입니다. 국문 글을 올렸다면 영문도 필요한지 확인하세요. 파일은 국문에서 올린 것을 선택해도 됩니다."
+    folder: cms/en/library
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{year}}{{month}}{{day}}-{{hour}}{{minute}}{{second}}"
+    summary: "{{title}} ({{date}})"
+    sortable_fields: [date, title]
+    fields:
+      - { label: 제목(영문), name: title, widget: string }
+      - { label: 날짜, name: date, widget: datetime, format: "YYYY-MM-DD HH:mm:ss", default: "{{now}}", hint: "목록은 날짜·시각 최신순입니다." }
+      - { label: 썸네일, name: thumbnail, widget: image, required: false, hint: "목록 썸네일 1순위. 비우면 첨부 이미지 → 본문 첫 이미지." }
+      - { label: PDF 파일, name: file, widget: file, accept: application/pdf, hint: "필수. 다운로드 이름은 파일 이름 그대로입니다." }
+      - { label: 요약, name: summary, widget: text, required: false, hint: "상세 페이지 검색엔진 설명(meta description)에 우선 사용." }
+      - { label: 숨김(사이트 비공개), name: draft, widget: boolean, default: false, hint: "켜면 사이트에 나오지 않지만, 공개 저장소이므로 글 내용은 외부에서 볼 수 있습니다." }
+      - { label: 본문, name: body, widget: markdown, required: false }
+      # 기존 글 전용(보존용)
+      - { label: 본문 형식, name: body_format, widget: hidden, required: false }
+      - { label: 관련 링크1, name: link1, widget: hidden, required: false }
+      - { label: 관련 링크2, name: link2, widget: hidden, required: false }
+      - *files_field
 
   # ───────── [EN] 회사 페이지 ─────────
   - name: company_en
@@ -553,9 +651,9 @@ collections:
               # 빌드가 읽는 선택 칸(영문 파일에는 현재 없음). 값이 생겨도 저장 때 지워지지 않게 보존
               - { label: 들여쓰기(보존용), name: map_indent, widget: hidden, required: false }
 
-  # ───────── [EN] 회사정보 ─────────
+  # ───────── [EN] 사이트 관리 (지금은 회사정보만. 영문 메뉴·팝업은 P4-EN2-B 이후) ─────────
   - name: settings_en
-    label: "[EN] 회사정보"
+    label: "[EN] 사이트 관리"
     description: "영문 전용 회사정보(국문 회사정보와 별개). 국문 페이지를 바꿨다면 영문도 함께 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다. 지금은 영문 Contact 페이지에만 반영되고, 영문 하단 푸터는 아직 연결 전입니다."
     editor:
       preview: false
