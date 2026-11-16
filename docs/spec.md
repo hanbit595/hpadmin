@@ -97,6 +97,8 @@ v2.2 변경(2026-11-13, P3-4b): 2절 본문 형식(body_format), 3절 thumbnail�
   메뉴 순서 국문·영문 동일: 게시판(회사소식·시공사례·E-Catalog) → 회사 페이지(인증 및 수상·연혁·회사소개·ESG·Contact) → 사이트 관리.
   국문 회사 페이지에 Contact(cms/pages/location.yml: 사업장 이름·지도만) 추가. 영문 사이트 관리는 지금 회사정보만(영문 메뉴·팝업은 P4-EN2-B 이후).
   영문 메뉴 이름은 "[EN] 한국어 (English)" 형식. 게시판 draft 칸 라벨은 "숨김(사이트 비공개)".
+  + P4-EN3(2026-11-16): [EN] 사이트 관리 = [EN] 메뉴 (Menu)(cms/en/settings/menu.yml)·[EN] 회사정보(+brochure, 선택)·[EN] 팝업 (Popup)(cms/en/settings/popups.yml).
+  메뉴·팝업 칸·안내문은 국문과 같다. 영문 회사정보에는 per_page·seo_description 이 없다(영문 파일·빌드가 쓰지 않음).
 - CNAME: admin.hanbitinnotech.com
 - robots.txt: 모든 크롤러 차단
 - .nojekyll (빈 파일)
