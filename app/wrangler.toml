@@ -1,0 +1,10 @@
+# Cloudflare Pages 프로젝트 설정 (명세: docs/spec-admin2.md)
+name = "hanbit-admin"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hanbit-admin-db"
+database_id = "f8fc66b6-529b-4a53-bedd-1f55bfb025e1"
+migrations_dir = "migrations"
