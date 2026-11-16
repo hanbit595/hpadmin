@@ -91,6 +91,8 @@ v2.2 변경(2026-11-13, P3-4b): 2절 본문 형식(body_format), 3절 thumbnail�
   site_url https://hanbitinnotech.com, collections = 회사소식·시공사례·E-Catalog(folder 컬렉션, 3절 필드, 라벨 한국어,
   새 글 slug "{{year}}{{month}}{{day}}-{{hour}}{{minute}}{{second}}") + "사이트 관리" files 컬렉션(메뉴 관리, 회사정보·기본설정, 메인 팝업)
   + "회사 페이지" files 컬렉션(P4-2: 인증 및 수상·연혁·회사소개·ESG 경영 = hopage cms/pages/*.yml). Contact 는 회사정보(site.yml)로 관리, 별도 메뉴 없음.
+  + 영문(P4-EN1, 국문과 완전히 분리): "[EN] 회사 페이지" files 컬렉션(cms/en/pages/cert·history·hanbit·esg·location.yml)과
+  "[EN] 회사정보"(cms/en/settings/site.yml). 영문 회사소개 맨 위는 hero.video(동영상). 파일(이미지·동영상)만 국문과 공유.
 - CNAME: admin.hanbitinnotech.com
 - robots.txt: 모든 크롤러 차단
 - .nojekyll (빈 파일)

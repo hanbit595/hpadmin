@@ -363,3 +363,215 @@ collections:
               - { label: 높이(px), name: height, widget: number, value_type: int, min: 0, required: false, hint: "비우면 660" }
               - { label: 위쪽 위치(px), name: top, widget: number, value_type: int, min: 0, required: false, hint: "비우면 150" }
               - { label: 왼쪽 위치(px), name: left, widget: number, value_type: int, min: 0, required: false, hint: "비우면 10" }
+
+  # ═════════ 영문(P4-EN1) — 국문과 완전히 분리(hopage cms/en/). 국문 데이터를 읽거나 쓰지 않는다 ═════════
+  # 빌드(build/cms_pages.py PAGES_EN)가 읽는 칸을 모두 선언한다. 파일(이미지·동영상)만 국문과 공유한다.
+  # 주의: 관리자 화면으로 저장하면 yml 파일 안의 # 설명 주석은 사라진다(내용 안내는 아래 hint 로 옮김).
+
+  # ───────── [EN] 회사 페이지 ─────────
+  - name: company_en
+    label: "[EN] 회사 페이지"
+    description: "영문 회사 페이지(Certifications·History·About·ESG·Contact) 내용입니다. 국문 페이지를 바꿨다면 영문도 함께 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다."
+    editor:
+      preview: false
+    files:
+      # ── Certifications (/en/page/cert.html) ──
+      - name: cert_en
+        label: "[EN] 인증 및 수상 (Certifications)"
+        file: cms/en/pages/cert.yml
+        fields:
+          - label: 구분(화면 순서)
+            name: categories
+            widget: list
+            min: 1
+            hint: "화면에 이 순서대로 묶음이 나옵니다. 노출 항목이 하나도 없는 구분은 통째로 숨겨집니다. 구분 이름을 바꾸거나 새로 만들면 아래 항목의 '구분' 선택지도 바꿔야 하므로 관리자에게 요청하세요."
+            field: { label: 구분, name: category, widget: string }
+          - label: 인증서·상장
+            name: items
+            widget: list
+            summary: "[{{fields.category}}] {{fields.name}} ({{fields.order}})"
+            hint: "국문 페이지를 바꿨다면 영문도 함께 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다. 인증서 이미지는 세로형(A4 비율) 원본 그대로."
+            fields:
+              - { label: 구분, name: category, widget: select, options: [Awards, Certifications, Patents], hint: "위 '구분' 목록에 있는 이름이어야 합니다(없으면 빌드 실패)." }
+              - { label: 명칭(영문), name: name, widget: string, hint: "사진 아래에 나오는 영문 글자." }
+              - { label: 발급기관, name: issuer, widget: string, required: false, hint: "기록용. 지금 화면에는 나오지 않습니다." }
+              - label: 날짜
+                name: date
+                widget: string
+                required: false
+                pattern: ['^(\d{4}-\d{2}(-\d{2})?)?$', "YYYY-MM-DD 또는 YYYY-MM 형식으로 적으세요(예: 2024-03-15)."]
+                hint: "기록용. 지금 화면에는 나오지 않습니다. YYYY-MM-DD 또는 YYYY-MM."
+              - { label: 인증서 이미지, name: image, widget: image, hint: "국문에서 올린 파일을 선택하면 됩니다. 세로형(A4 비율, 기존 239×338px) 원본 그대로." }
+              - { label: 노출, name: visible, widget: boolean, default: true, hint: "끄면 영문 화면에서만 숨깁니다(국문과 별개)." }
+              - { label: 순서, name: order, widget: number, value_type: int, min: 0, required: false, hint: "같은 구분 안에서 작은 숫자가 먼저. 같으면 목록에 적힌 순서." }
+
+      # ── History (/en/page/history.html) ──
+      - name: history_en
+        label: "[EN] 연혁 (History)"
+        file: cms/en/pages/history.yml
+        fields:
+          - label: 기간 묶음
+            name: periods
+            widget: list
+            min: 1
+            summary: "{{fields.title}}"
+            hint: "국문 페이지를 바꿨다면 영문도 함께 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다. 위에서부터 이 순서로 나오고, 사진은 왼쪽·오른쪽 번갈아 나옵니다."
+            fields:
+              - { label: 기간 제목, name: title, widget: string, hint: "사진 위 큰 글자. 예: Now - 2020" }
+              - label: 주소 이름표
+                name: anchor
+                widget: string
+                required: false
+                pattern: ['^[A-Za-z0-9_-]*$', "영문·숫자·-·_ 만 쓸 수 있습니다."]
+                hint: "페이지 안 바로가기용 id. 영문·숫자·-·_ 만. 비우면 his-1, his-2 … 다른 묶음과 겹치면 안 됩니다. 이미 있는 값은 바꾸지 마세요."
+              - { label: 기간 사진, name: image, widget: image, hint: "국문에서 올린 파일을 선택하면 됩니다. 가로형(기존 597×343px 비율)." }
+              - label: 연도
+                name: years
+                widget: list
+                min: 1
+                summary: "{{fields.year}}"
+                hint: "적은 순서와 상관없이 큰 연도가 위로 정렬됩니다. 같은 기간 안에 같은 연도를 두 번 만들지 마세요."
+                fields:
+                  - { label: 연도, name: year, widget: number, value_type: int, min: 1900, max: 2099, hint: "4자리 숫자. 예: 2026" }
+                  - label: 월
+                    name: months
+                    widget: list
+                    min: 1
+                    summary: "{{fields.month}}"
+                    hint: "큰 달이 위로 정렬됩니다."
+                    fields:
+                      - { label: 월, name: month, widget: select, options: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"] }
+                      - label: 내용(영문)
+                        name: items
+                        widget: list
+                        min: 1
+                        hint: "그 달의 영문 내용(1개 이상). 2개를 적으면 한 줄에 2칸으로 나옵니다. <br> 로 줄을 나눌 수 있습니다."
+                        field: { label: 내용, name: item, widget: text }
+
+      # ── About (/en/page/hanbit.html) ──
+      - name: hanbit_en
+        label: "[EN] 회사소개 (About)"
+        file: cms/en/pages/hanbit.yml
+        fields:
+          - label: 맨 위 큰 화면
+            name: hero
+            widget: object
+            hint: "국문 페이지를 바꿨다면 영문도 함께 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다. 영문 맨 위는 사진이 아니라 배경 동영상입니다."
+            fields:
+              - { label: 큰 제목, name: title, widget: string }
+              - { label: 배경 동영상, name: video, widget: file, accept: "video/*", hint: "동영상 파일(mp4 권장). 사진이 아닙니다. 기존 값 .mov 는 빌드가 바꾼 .mp4 를 씁니다. 파일이 사이트에 없으면 빌드 실패." }
+          - label: 검은 화면 문단(3개 고정)
+            name: intro_texts
+            widget: list
+            min: 3
+            max: 3
+            allow_add: false
+            allow_remove: false
+            hint: "꼭 3개. 화면 움직임과 맞물려 있어 추가·삭제할 수 없습니다. <br>(줄바꿈)·<b>(굵게) 사용 가능."
+            field: { label: 문단, name: text, widget: text }
+          - label: 함께 올라오는 사진(6장 고정)
+            name: photos
+            widget: list
+            min: 6
+            max: 6
+            allow_add: false
+            allow_remove: false
+            hint: "꼭 6장. 2장씩 3단(1·2 → 3·4 → 5·6). 추가·삭제할 수 없고 사진만 바꿀 수 있습니다. 국문에서 올린 파일을 선택하면 됩니다(4번째만 가로형, 나머지는 세로형)."
+            field: { label: 사진, name: photo, widget: image }
+          - { label: 넓은 배경 사진 위 문단, name: energy_text, widget: text, hint: "배경 사진은 디자인에 고정되어 바꿀 수 없습니다. <br> 사용 가능." }
+          - label: 해 사진 옆 문단(2개 고정)
+            name: sun_texts
+            widget: list
+            min: 2
+            max: 2
+            allow_add: false
+            allow_remove: false
+            hint: "꼭 2개. 추가·삭제할 수 없습니다. 사진은 디자인에 고정. <br> 사용 가능."
+            field: { label: 문단, name: text, widget: text }
+          - { label: 마지막 문장, name: ending_text, widget: text, hint: "<br>(줄바꿈)·<b>(굵게) 사용 가능." }
+
+      # ── ESG (/en/page/esg.html) ──
+      - name: esg_en
+        label: "[EN] ESG 경영 (ESG)"
+        file: cms/en/pages/esg.yml
+        fields:
+          - label: 소개
+            name: intro
+            widget: object
+            hint: "국문 페이지를 바꿨다면 영문도 함께 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다. 맨 위 큰 화면 문구는 여러 페이지 공통 문구라 여기서 바꾸지 않습니다."
+            fields:
+              - { label: 소개 제목, name: title, widget: string, hint: "글자 그대로 나옵니다(HTML 안 됨)." }
+              - { label: 소개 문단, name: text, widget: text, hint: "<br> 사용 가능." }
+          - { label: 원 위로 흐르는 글자, name: flow_text, widget: string }
+          - label: 원 3개(E·S·G 고정)
+            name: pillars
+            widget: list
+            min: 3
+            max: 3
+            allow_add: false
+            allow_remove: false
+            summary: "{{fields.title}}"
+            hint: "꼭 3개(왼쪽→오른쪽). 디자인상 원 3개라 추가·삭제할 수 없습니다."
+            fields:
+              - { label: 원 제목, name: title, widget: string }
+              - { label: 아이콘, name: icon, widget: image, hint: "국문에서 올린 파일을 선택하면 됩니다. 정사각형 투명 배경 PNG(기존 81×81px)." }
+              - { label: 설명, name: text, widget: text, hint: "<br> 사용 가능." }
+          - label: 아래 상세 상자
+            name: details
+            widget: list
+            min: 1
+            summary: "{{fields.title}}"
+            fields:
+              - { label: 상자 제목, name: title, widget: string }
+              - label: 항목
+                name: items
+                widget: list
+                min: 1
+                hint: "항목 앞의 '-' 는 화면이 자동으로 붙이므로 적지 마세요."
+                field: { label: 항목, name: item, widget: string }
+
+      # ── Contact (/en/page/location.html) ──
+      - name: location_en
+        label: "[EN] Contact"
+        file: cms/en/pages/location.yml
+        fields:
+          - label: 사업장
+            name: locations
+            widget: list
+            min: 1
+            summary: "{{fields.title}}"
+            hint: "국문 페이지를 바꿨다면 영문도 함께 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다. 위에서부터 이 순서로 나옵니다. 주소·연락처·메일은 '[EN] 회사정보'에서 고칩니다."
+            fields:
+              - { label: 연결할 사업장 이름, name: office, widget: string, hint: "'[EN] 회사정보'의 사업장 이름과 글자까지 똑같이(다르면 빌드 실패). 주소는 거기서 가져옵니다." }
+              - { label: 작은 제목, name: label, widget: string, hint: "예: Headquarters. & 등 HTML 그대로." }
+              - { label: 사업장 이름, name: title, widget: string, hint: "예: HANBIT Innotech Headquarters" }
+              - label: 구글 지도 삽입 주소
+                name: map
+                widget: string
+                pattern: ['^https://www\.google\.com/maps/embed', "https://www.google.com/maps/embed 로 시작해야 합니다."]
+                hint: "구글 지도 > 공유 > 지도 퍼가기 의 src=\"…\" 안의 주소."
+              # 빌드가 읽는 선택 칸(영문 파일에는 현재 없음). 값이 생겨도 저장 때 지워지지 않게 보존
+              - { label: 들여쓰기(보존용), name: map_indent, widget: hidden, required: false }
+
+  # ───────── [EN] 회사정보 ─────────
+  - name: settings_en
+    label: "[EN] 회사정보"
+    description: "영문 전용 회사정보(국문 회사정보와 별개). 국문 페이지를 바꿨다면 영문도 함께 확인하세요. 사진은 국문에서 올린 파일을 선택하면 됩니다. 지금은 영문 Contact 페이지에만 반영되고, 영문 하단 푸터는 아직 연결 전입니다."
+    editor:
+      preview: false
+    files:
+      - name: site_en
+        label: "[EN] 회사정보"
+        file: cms/en/settings/site.yml
+        fields:
+          - label: 사업장
+            name: offices
+            widget: list
+            min: 1
+            summary: "{{fields.name}}"
+            hint: "영문 Contact 페이지에 반영됩니다."
+            fields:
+              - { label: 사업장 이름, name: name, widget: string, hint: "'[EN] Contact'의 연결할 사업장 이름과 연결되어 있어, 바꾸거나 지우면 빌드가 멈춥니다. 바꿀 때는 Contact 쪽도 같이 바꾸세요." }
+              - { label: 영문 주소, name: address, widget: string }
+          - { label: 대표전화, name: tel, widget: string, hint: "+82-51-913-0120 형식. 영문 Contact 에는 051-913-0120 으로 바뀌어 나옵니다." }
+          - { label: 이메일, name: email, widget: string }
