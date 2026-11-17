@@ -78,6 +78,7 @@ export interface PostData {
 
 export interface SaveResult {
   path: string;
+  branch?: string;
   sha: string;
   commit?: string;
   name?: string;

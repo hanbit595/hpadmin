@@ -49,7 +49,8 @@ async function call(env: Env, method: string, path: string, body?: unknown): Pro
   try {
     return await fetch(`${API}${path}`, {
       method,
-      headers: headers(env, body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      // 저장 직후 다시 읽을 때 GitHub 가 이전 응답을 주지 않게
+      headers: headers(env, body !== undefined ? { 'Content-Type': 'application/json' } : { 'Cache-Control': 'no-cache' }),
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {

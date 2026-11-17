@@ -34,7 +34,19 @@ export default function BoardList({ lang, board, onExpired }: { lang: Lang; boar
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
-  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(() => {
+    // 글 삭제 뒤 목록으로 왔을 때 알림
+    try {
+      const f = sessionStorage.getItem('hb-flash-list');
+      if (f) {
+        sessionStorage.removeItem('hb-flash-list');
+        return { kind: 'ok', text: f };
+      }
+    } catch {
+      // 저장소를 쓸 수 없는 브라우저
+    }
+    return null;
+  });
   const [reload, setReload] = useState(0);
 
   // 게시판이 바뀌면 Shell 이 key 로 화면을 새로 만든다(검색·필터·쪽 처음 상태)

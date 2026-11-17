@@ -1,9 +1,11 @@
 // 관리자 틀: 상단바 + 왼쪽 메뉴(좁은 화면에서는 ☰ 로 여는 서랍) + 본문
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { api, type Summary, type User } from './api';
 import { MENU, SITE_URL, findItem, label, parsePath, pathOf, saveLang, savedLang, type Lang } from './nav';
-import { isBoard } from '../shared/boards';
+import { NAME_RE, isBoard } from '../shared/boards';
 import BoardList from './pages/BoardList';
+// 글쓰기 화면(편집기 포함)은 열 때 따로 불러온다
+const PostEditor = lazy(() => import('./pages/PostEditor'));
 import Dashboard from './pages/Dashboard';
 import Placeholder from './pages/Placeholder';
 import { linkClick, navigate, usePathname } from './router';
@@ -84,8 +86,14 @@ export default function Shell({ user, onLogout, onExpired }: { user: User; onLog
   else if (found.group.adminOnly && !isAdmin)
     page = <Placeholder title={label(found.item, lang)} message="관리자만 사용할 수 있는 화면입니다." lang={lang} denied />;
   else if (isBoard(key) && !sub) page = <BoardList key={`${lang}/${key}`} lang={lang} board={key} onExpired={onExpired} />;
-  else if (isBoard(key) && sub)
-    page = <Placeholder title={label(found.item, lang)} group="게시판" message="글쓰기 화면은 3-2c 단계 2에서 만듭니다." lang={lang} />;
+  else if (isBoard(key) && sub && (sub === 'new' || NAME_RE.test(sub)))
+    page = (
+      <Suspense fallback={<div className="loading">편집기를 불러오는 중…</div>}>
+        <PostEditor key={`${lang}/${key}/${sub}`} lang={lang} board={key} name={sub} onExpired={onExpired} />
+      </Suspense>
+    );
+  else if (isBoard(key))
+    page = <Placeholder title="없는 글" message="글 주소가 올바르지 않습니다. 목록에서 선택해 주세요." lang={lang} />;
   else
     page = (
       <Placeholder

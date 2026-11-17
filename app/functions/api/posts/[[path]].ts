@@ -1,8 +1,8 @@
 // /api/posts/{lang}/{board}/{name} : 글 1건 읽기(GET)·수정(PUT) (명세 6-2절). 로그인 필요(편집자 가능).
-import { isBoard, isLang, NAME_RE, sitePath, type Board, type Lang } from '../../../shared/boards';
+import { isBoard, isKoMedia, isLang, kstNow, NAME_RE, sitePath, type Board, type Lang } from '../../../shared/boards';
 import { resolvePaths } from '../../../server/resolve';
-import { ContentError, contentBranch, getFile, putFile } from '../../../server/content';
-import { FormatError, editFrontMatter, parseMd, rebuild } from '../../../server/frontmatter';
+import { ContentError, contentBranch, deleteFile, fileSha, getFile, putFile } from '../../../server/content';
+import { FormatError, editFrontMatter, newMd, parseMd, rebuild } from '../../../server/frontmatter';
 import { fail, json, readJson, type Env } from '../../../server/http';
 import { listPosts } from '../../../server/list';
 import { checkPost, cleanFields, commitMessage, postPath } from '../../../server/save';
@@ -77,7 +77,7 @@ async function onPut(env: Env, request: Request, user: SessionUser, t: Required<
   // 본문을 HTML 로 고쳐 저장하는데 markdown 글이었으면 형식 칸을 html 로
   if (bodyChanged && String(md.fm.body_format ?? '').toLowerCase() !== 'html') fields.body_format = 'html';
   const ed = editFrontMatter(md.fmText, md.fm, fields);
-  if (!ed.changed.length && !bodyChanged) return json({ ok: true, unchanged: true, sha: file.sha, path });
+  if (!ed.changed.length && !bodyChanged) return json({ ok: true, unchanged: true, sha: file.sha, path, branch: contentBranch(env) });
 
   const text = rebuild(md, ed.fmText, bodyChanged ? body : undefined);
   const next = parseMd(text, path);
@@ -85,7 +85,64 @@ async function onPut(env: Env, request: Request, user: SessionUser, t: Required<
   const title = String(next.fm.title ?? t.name);
   const res = await putFile(env, path, text, commitMessage(t.lang, t.board, '저장', title, user), file.sha);
   await audit(env, user.id, 'post_save', path, { title, changed: ed.changed, body: bodyChanged, commit: res.commit.slice(0, 7) });
-  return json({ ok: true, sha: res.sha, commit: res.commit, path, changed: ed.changed, bodyChanged });
+  return json({ ok: true, sha: res.sha, commit: res.commit, path, changed: ed.changed, bodyChanged, branch: contentBranch(env) });
+}
+
+/** 새 글: 파일명 = 저장 시각(한국) YYYYMMDD-HHMMSS, 이미 있으면 1초씩 늘림 */
+async function onPost(env: Env, request: Request, user: SessionUser, t: Target) {
+  const input = await readJson(request);
+  if (!input) return fail(400, '입력 값이 올바르지 않습니다.');
+  const f = cleanFields(t.lang, t.board, input.fields ?? {});
+  const body = typeof input.body === 'string' ? input.body : '';
+  const koMedia = isKoMedia(t.lang, t.board);
+  const fields: [string, unknown][] = [
+    ['title', f.title ?? ''],
+    ...(koMedia ? ([['category', f.category ?? []], ['capacity', f.capacity ?? ''], ['program', f.program ?? '']] as [string, unknown][]) : []),
+    ['date', f.date || kstNow()],
+    ['thumbnail', f.thumbnail ?? ''],
+    ['summary', f.summary ?? ''],
+    ...(koMedia
+      ? ([
+          ['gallery', f.gallery ?? []],
+          ['featured', f.featured ?? false],
+          ...(f.featured_order !== undefined && f.featured_order !== '' ? [['featured_order', f.featured_order]] : []),
+          ['featured_image', f.featured_image ?? ''],
+        ] as [string, unknown][])
+      : []),
+    ...(t.board === 'library' ? ([['file', f.file ?? '']] as [string, unknown][]) : []),
+    ['draft', f.draft ?? false],
+    ['body_format', 'html'],
+  ];
+  const text = newMd(fields, body);
+  const where = postPath(t.lang, t.board, 'new');
+  await checkPost(env, parseMd(text, where).fm, t.lang, t.board, where, true);
+  const title = String(f.title);
+  let now = Date.now();
+  for (let i = 0; i < 5; i++, now += 1000) {
+    const name = kstNow(now).replace(/[-:]/g, '').replace(' ', '-');
+    const path = postPath(t.lang, t.board, name);
+    if (await fileSha(env, path)) continue;
+    try {
+      const res = await putFile(env, path, text, commitMessage(t.lang, t.board, '저장', title, user));
+      await audit(env, user.id, 'post_create', path, { title, commit: res.commit.slice(0, 7) });
+      return json({ ok: true, name, path, sha: res.sha, commit: res.commit, branch: contentBranch(env) });
+    } catch (e) {
+      if (e instanceof ContentError && e.status === 422) continue; // 그 사이 같은 이름이 생김
+      throw e;
+    }
+  }
+  return fail(409, '새 글 이름을 정하지 못했습니다. 잠시 후 다시 저장해 주세요.');
+}
+
+async function onDelete(env: Env, request: Request, user: SessionUser, t: Required<Target>) {
+  const sha = new URL(request.url).searchParams.get('sha') ?? '';
+  if (!sha) return fail(400, '글을 연 때의 버전 정보(sha)가 없습니다. 글을 다시 열어 주세요.');
+  const { path, file, md } = await readPost(env, t);
+  if (file.sha !== sha) return fail(409, '다른 사람이 먼저 이 글을 고쳤습니다. 글을 다시 열어 확인한 뒤 삭제해 주세요.');
+  const title = String(md.fm.title ?? t.name);
+  const commit = await deleteFile(env, path, file.sha, commitMessage(t.lang, t.board, '삭제', title, user));
+  await audit(env, user.id, 'post_delete', path, { title, commit: commit.slice(0, 7) });
+  return json({ ok: true, path, commit, branch: contentBranch(env) });
 }
 
 export const onRequest: PagesFunction<Env> = async ({ request, env, params }) => {
@@ -102,7 +159,8 @@ export const onRequest: PagesFunction<Env> = async ({ request, env, params }) =>
       const tt = t as Required<Target>;
       if (request.method === 'GET') return await onGet(env, tt);
       if (request.method === 'PUT') return await onPut(env, request, user, tt);
-    }
+      if (request.method === 'DELETE') return await onDelete(env, request, user, tt);
+    } else if (request.method === 'POST') return await onPost(env, request, user, t);
     return fail(405, '지원하지 않는 요청입니다.');
   } catch (e) {
     if (e instanceof ContentError) return fail(e.status, e.message);
