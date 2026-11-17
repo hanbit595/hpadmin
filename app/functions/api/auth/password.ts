@@ -27,7 +27,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const { hash, salt } = await hashPassword(next);
   await env.DB.batch([
-    env.DB.prepare('UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?').bind(hash, salt, Date.now(), user.id),
+    env.DB.prepare('UPDATE users SET password_hash = ?, password_salt = ?, must_change = 0, updated_at = ? WHERE id = ?').bind(
+      hash,
+      salt,
+      Date.now(),
+      user.id,
+    ),
     env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND id <> ?').bind(user.id, user.sessionId),
     auditStmt(env, user.id, 'password_change', user.username, { ip }),
   ]);

@@ -17,6 +17,7 @@ interface UserRow {
   active: number;
   failed_count: number;
   locked_until: number | null;
+  must_change: number;
 }
 
 function lockMessage(remainMs: number, justLocked: boolean): string {
@@ -82,7 +83,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   ]);
 
   return json(
-    { ok: true, user: { username: user.username, displayName: user.display_name, role: user.role } },
+    { ok: true, user: { username: user.username, displayName: user.display_name, role: user.role, mustChange: user.must_change === 1 } },
     200,
     { 'Set-Cookie': sessionCookie(session.token, session.maxAgeSec) },
   );

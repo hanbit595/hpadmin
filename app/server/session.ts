@@ -12,10 +12,11 @@ export interface SessionUser {
   username: string;
   displayName: string;
   role: 'admin' | 'editor';
+  mustChange: boolean;
 }
 
 export function publicUser(u: SessionUser) {
-  return { username: u.username, displayName: u.displayName, role: u.role };
+  return { username: u.username, displayName: u.displayName, role: u.role, mustChange: u.mustChange };
 }
 
 export function getCookie(request: Request, name: string): string | null {
@@ -50,14 +51,21 @@ export async function getSession(env: Env, request: Request): Promise<SessionUse
   const token = getCookie(request, COOKIE_NAME);
   if (!token || token.length > 100) return null;
   const row = await env.DB.prepare(
-    `SELECT s.id AS session_id, u.id, u.username, u.display_name, u.role
+    `SELECT s.id AS session_id, u.id, u.username, u.display_name, u.role, u.must_change
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = ? AND s.expires_at > ? AND u.active = 1`,
   )
     .bind(await sha256Hex(token), Date.now())
-    .first<{ session_id: string; id: number; username: string; display_name: string; role: 'admin' | 'editor' }>();
+    .first<{ session_id: string; id: number; username: string; display_name: string; role: 'admin' | 'editor'; must_change: number }>();
   if (!row) return null;
-  return { sessionId: row.session_id, id: row.id, username: row.username, displayName: row.display_name, role: row.role };
+  return {
+    sessionId: row.session_id,
+    id: row.id,
+    username: row.username,
+    displayName: row.display_name,
+    role: row.role,
+    mustChange: row.must_change === 1,
+  };
 }
 
 export function auditStmt(env: Env, userId: number | null, action: string, target: string, detail: Record<string, unknown> = {}) {

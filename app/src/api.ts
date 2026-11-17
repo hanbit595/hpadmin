@@ -5,6 +5,7 @@ export interface User {
   username: string;
   displayName: string;
   role: 'admin' | 'editor';
+  mustChange?: boolean;
 }
 
 export interface ApiResult<T> {
@@ -88,7 +89,7 @@ export interface SaveResult {
 }
 
 export async function request<T>(
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
 ): Promise<ApiResult<T>> {
@@ -101,6 +102,11 @@ export async function request<T>(
       body: body === undefined ? undefined : raw ? (body as Blob) : JSON.stringify(body),
     });
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    // 홈페이지 저장소에 커밋한 저장이면 반영 상태 알림(DeployToast)에 알린다
+    if (res.ok && json.ok && method !== 'GET' && typeof json.commit === 'string' && !path.startsWith('/api/uploads')) {
+      window.dispatchEvent(new CustomEvent('hb-saved', { detail: { commit: json.commit, branch: json.branch } }));
+    }
+    if (res.status === 403 && json.mustChange) window.dispatchEvent(new Event('hb-must-change'));
     if (res.ok && json.ok) return { ok: true, status: res.status, data: json as T };
     return {
       ok: false,

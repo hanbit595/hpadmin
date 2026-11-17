@@ -45,7 +45,8 @@ export const MENU: MenuGroup[] = [
       { key: 'popups', ko: '팝업', en: 'Popup', stage: '3-2d' },
     ],
   },
-  { title: '', adminOnly: true, items: [{ key: 'users', ko: '직원 계정', stage: '3-2e' }] },
+  { title: '기록·계정', items: [{ key: 'audit', ko: '수정 기록' }, { key: 'account', ko: '내 계정' }] },
+  { title: '', adminOnly: true, items: [{ key: 'users', ko: '직원 계정' }] },
 ];
 
 export function label(item: MenuItem, lang: Lang): string {

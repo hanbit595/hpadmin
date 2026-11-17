@@ -28,6 +28,8 @@ const DOC_PAGES: Record<string, (p: DocProps) => ReactNode> = {
   site: (p) => <SiteSettings key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
   popups: (p) => <PopupsSettings key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
 };
+import DeployToast from './DeployToast';
+import { Account, AuditLog, Users } from './pages/AccountPages';
 import Dashboard from './pages/Dashboard';
 import Placeholder from './pages/Placeholder';
 import { linkClick, navigate, usePathname } from './router';
@@ -54,7 +56,17 @@ function LangSwitch({ lang, current }: { lang: Lang; current: string }) {
   );
 }
 
-export default function Shell({ user, onLogout, onExpired }: { user: User; onLogout: () => void; onExpired: () => void }) {
+export default function Shell({
+  user,
+  onLogout,
+  onExpired,
+  onUserChange,
+}: {
+  user: User;
+  onLogout: () => void;
+  onExpired: () => void;
+  onUserChange: (u: User) => void;
+}) {
   const pathname = usePathname();
   const parsed = parsePath(pathname);
   const [drawer, setDrawer] = useState(false);
@@ -116,6 +128,9 @@ export default function Shell({ user, onLogout, onExpired }: { user: User; onLog
     );
   else if (isBoard(key))
     page = <Placeholder title="없는 글" message="글 주소가 올바르지 않습니다. 목록에서 선택해 주세요." lang={lang} />;
+  else if (key === 'users' && !sub) page = <Users onExpired={onExpired} />;
+  else if (key === 'audit' && !sub) page = <AuditLog onExpired={onExpired} />;
+  else if (key === 'account' && !sub) page = <Account user={user} onRenamed={(n) => onUserChange({ ...user, displayName: n })} />;
   else if (DOC_PAGES[key] && !sub)
     page = (
       <Suspense fallback={<div className="loading">불러오는 중…</div>}>
@@ -194,6 +209,7 @@ export default function Shell({ user, onLogout, onExpired }: { user: User; onLog
         </nav>
 
         <main className="content">{page}</main>
+        <DeployToast />
       </div>
     </div>
   );

@@ -18,10 +18,14 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
 
   try {
     const path = new URL(request.url).pathname;
-    if (ADMIN_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
+    if (!path.startsWith('/api/auth/')) {
       const user = await getSession(env, request);
-      if (!user) return withHeaders(fail(401, '로그인이 필요합니다.'));
-      if (user.role !== 'admin') return withHeaders(fail(403, '관리자만 사용할 수 있는 기능입니다.'));
+      // 임시 비밀번호 계정: 비밀번호를 바꾸기 전에는 다른 기능을 쓰지 못한다(3-2e)
+      if (user?.mustChange) return withHeaders(fail(403, '임시 비밀번호입니다. 먼저 비밀번호를 변경해 주세요.', { mustChange: true }));
+      if (ADMIN_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
+        if (!user) return withHeaders(fail(401, '로그인이 필요합니다.'));
+        if (user.role !== 'admin') return withHeaders(fail(403, '관리자만 사용할 수 있는 기능입니다.'));
+      }
     }
     res = await ctx.next();
   } catch (e) {
