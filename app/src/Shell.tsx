@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { api, type Summary, type User } from './api';
 import { MENU, SITE_URL, findItem, label, parsePath, pathOf, saveLang, savedLang, type Lang } from './nav';
+import { isBoard } from '../shared/boards';
+import BoardList from './pages/BoardList';
 import Dashboard from './pages/Dashboard';
 import Placeholder from './pages/Placeholder';
 import { linkClick, navigate, usePathname } from './router';
@@ -36,7 +38,9 @@ export default function Shell({ user, onLogout, onExpired }: { user: User; onLog
 
   // 언어 없는 주소(/ 등)는 기억한 언어의 대시보드로
   const lang: Lang = parsed?.lang ?? savedLang();
-  const key = parsed?.key ?? '';
+  const fullKey = parsed?.key ?? '';
+  // 게시판은 /{lang}/{게시판}/{글} 처럼 아래 주소가 있다
+  const [key, sub] = fullKey.split(/\/(.*)/s) as [string, string | undefined];
   const valid = parsed !== null;
 
   useEffect(() => {
@@ -75,9 +79,13 @@ export default function Shell({ user, onLogout, onExpired }: { user: User; onLog
 
   let page;
   if (key === '') page = <Dashboard user={user} lang={lang} summary={summary} onExpired={onExpired} />;
-  else if (!found) page = <Placeholder title="없는 화면" message="주소가 올바르지 않습니다. 왼쪽 메뉴에서 선택해 주세요." lang={lang} />;
+  else if (!found || (sub && !isBoard(key)))
+    page = <Placeholder title="없는 화면" message="주소가 올바르지 않습니다. 왼쪽 메뉴에서 선택해 주세요." lang={lang} />;
   else if (found.group.adminOnly && !isAdmin)
     page = <Placeholder title={label(found.item, lang)} message="관리자만 사용할 수 있는 화면입니다." lang={lang} denied />;
+  else if (isBoard(key) && !sub) page = <BoardList key={`${lang}/${key}`} lang={lang} board={key} onExpired={onExpired} />;
+  else if (isBoard(key) && sub)
+    page = <Placeholder title={label(found.item, lang)} group="게시판" message="글쓰기 화면은 3-2c 단계 2에서 만듭니다." lang={lang} />;
   else
     page = (
       <Placeholder

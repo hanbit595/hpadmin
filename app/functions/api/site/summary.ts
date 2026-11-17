@@ -65,7 +65,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const lang: Lang = new URL(request.url).searchParams.get('lang') === 'en' ? 'en' : 'ko';
 
   try {
-    const treeRes = await ghJson<{ sha: string; truncated: boolean; tree: TreeEntry[] }>(env, `/repos/${REPO}/git/trees/main?recursive=1`);
+    // 글 수는 게시판 저장 대상 브랜치 기준(3-2c). 설정이 없으면 main
+    const branch = (env.CONTENT_BRANCH ?? '').trim() || 'main';
+    const treeRes = await ghJson<{ sha: string; truncated: boolean; tree: TreeEntry[] }>(
+      env,
+      `/repos/${REPO}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+    );
     const tree = treeRes.tree;
     const [certKo, certEn, popups] = await Promise.all([
       readYaml(env, tree, 'cms/pages/cert.yml'),

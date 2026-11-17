@@ -2,6 +2,8 @@
 export interface Env {
   DB: D1Database;
   GITHUB_TOKEN?: string;
+  /** 게시판 저장 대상 hopage 브랜치(3-2c: admin-dev, 3-2f: main) */
+  CONTENT_BRANCH?: string;
 }
 
 export const SECURITY_HEADERS: Record<string, string> = {

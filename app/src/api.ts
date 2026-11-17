@@ -42,13 +42,62 @@ export interface DeployStatus {
   commits: { ok: boolean; error?: string; items: { sha: string; message: string; date: string }[] };
 }
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<ApiResult<T>> {
+export interface PostRow {
+  name: string;
+  sha: string;
+  title: string;
+  subject: string;
+  category: string[];
+  date: string;
+  draft: boolean;
+  featured: boolean;
+  featuredOrder: number | null;
+  thumb: string;
+  error?: string;
+}
+
+export interface PostList {
+  branch: string;
+  total: number;
+  hiddenCount: number;
+  found: number;
+  page: number;
+  pages: number;
+  perPage: number;
+  items: PostRow[];
+}
+
+export interface PostData {
+  path: string;
+  sha: string;
+  fm: Record<string, unknown>;
+  body: string;
+  branch: string;
+  resolved: Record<string, string>;
+}
+
+export interface SaveResult {
+  path: string;
+  sha: string;
+  commit?: string;
+  name?: string;
+  unchanged?: boolean;
+  changed?: string[];
+  bodyChanged?: boolean;
+}
+
+export async function request<T>(
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  path: string,
+  body?: unknown,
+): Promise<ApiResult<T>> {
   try {
+    const raw = body instanceof Blob;
     const res = await fetch(path, {
       method,
       credentials: 'same-origin',
-      headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      headers: body !== undefined && !raw ? { 'Content-Type': 'application/json' } : undefined,
+      body: body === undefined ? undefined : raw ? (body as Blob) : JSON.stringify(body),
     });
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (res.ok && json.ok) return { ok: true, status: res.status, data: json as T };
@@ -70,6 +119,10 @@ export const api = {
   logout: () => request<object>('POST', '/api/auth/logout', {}),
   summary: (lang: Lang) => request<Summary>('GET', `/api/site/summary?lang=${lang}`),
   deployStatus: () => request<DeployStatus>('GET', '/api/deploy/status'),
+  posts: (params: Record<string, string>) => request<PostList>('GET', `/api/posts?${new URLSearchParams(params)}`),
+  post: (lang: Lang, board: string, name: string) => request<PostData>('GET', `/api/posts/${lang}/${board}/${name}`),
+  savePost: (lang: Lang, board: string, name: string, data: { sha: string; fields: Record<string, unknown>; body?: string }) =>
+    request<SaveResult>('PUT', `/api/posts/${lang}/${board}/${name}`, data),
 };
 
 /** 한국 시간 표시: 2026. 11. 17. 오후 3:05 */

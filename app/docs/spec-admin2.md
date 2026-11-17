@@ -121,6 +121,67 @@
   글 수 표(국문·영문), 홈페이지 반영 상태(한국 시간), 최근 수정 5건(커밋 메시지·시각, "누가"는 3-2c 이후), 현재 팝업(선택 언어).
 - 아직 만들지 않은 메뉴는 제목과 "3-2c/3-2d/3-2e 단계에서 만들 화면" 안내만 있는 자리 화면.
 
+## 6-2. 게시판 저장 규칙 (3-2c, hopage build/cms_posts.py·boards.py·build.py·docs/spec.md 조사 결과, 2026-11-17)
+### 저장 위치·브랜치
+- 저장 대상 브랜치 = 서버 환경변수 `CONTENT_BRANCH`(지금 `admin-dev`, 3-2f 에서 `main`). 설정이 없으면 게시판 읽기·저장을 하지 않고 안내한다.
+  admin-dev 에 저장한 글은 홈페이지에 반영되지 않는다(hopage Actions 는 main push 에서만 빌드·배포).
+- 3-2c 시작 시 admin-dev 가 main 보다 8커밋 뒤처져 있어 대표 승인 후 main(7005a65)으로 fast-forward 했다(새 커밋 없음).
+- 게시판 폴더: 국문 `cms/notice|media|library/`, 영문 `cms/en/notice|media|library/`. 파일 = `<파일명>.md`(머리말 YAML + 본문).
+- 파일명: 기존 글 = 글번호(`99.md`, 0 으로 시작 안 함), 새 글 = `YYYYMMDD-HHMMSS.md`(저장 시각, 한국 시간). 대소문자 무시 중복 금지.
+  새 글 이름이 이미 있으면 1초씩 늘려 다시 시도한다.
+- 업로드: `uploads/YYYYMMDD-HHMMSS-난수6.확장자`(난수 = 소문자·숫자 6자), 사이트 주소 `/uploads/…`.
+  빌드는 cms·content·templates 어디에도 주소가 없는 업로드를 배포본에 넣지 않는다(원본은 남음).
+
+### 머리말 칸 (YAML 1.2 처럼 true/false 만 불리언. 빌드 CmsLoader)
+| 칸 | 게시판 | 필수 | 형식·규칙 |
+|---|---|---|---|
+| title | 전부 | 예 | 글자(비면 실패). 국문 시공사례는 현장명, 영문은 통째 제목 |
+| date | 전부 | 예 | "YYYY-MM-DD HH:MM:SS" 또는 "YYYY-MM-DD"(→ 00:00:00). 없는 날짜·시각이면 실패 |
+| draft | 전부 | | true/false(기본 false). true 면 목록·상세·메인·sitemap 에서 빠짐(검사는 똑같이 함) |
+| thumbnail | 전부 | | /로 시작하는 사이트 주소. 목록·메인 썸네일 1순위 |
+| summary | 전부 | | 메인 News 요약·상세 meta description 1순위 |
+| body_format | 전부 | | html 이면 본문 HTML 그대로, 없으면 markdown→HTML. html·markdown 외 값은 실패. 관리자 새 글은 html |
+| category | 국문 시공사례 | 예 | 목록(글자 1개도 허용), 허용값 태양광발전장치·BIPV·주차장태양광·기타, 1개 이상 |
+| capacity, program | 국문 시공사례 | | 글자. 표시 제목 "[분류,분류] 현장명 용량 ㅣ 사업구분" |
+| gallery | 국문 시공사례 | | 이미지 주소 목록(글자 또는 {image}) |
+| featured, featured_order, featured_image | 국문 시공사례 | | 불리언 / 정수(불리언 금지) / 주소 |
+| featured_label, featured_text | 국문 시공사례 | | 기존 글 전용. 관리자 화면에 없음, 그대로 보존 |
+| file | E-Catalog(국문·영문) | 예 | /로 시작(//금지) PDF 주소, public/ 에 실제 파일이 있어야 함 |
+| link1, link2 | 전부 | | 기존 글 전용 글자(관련 링크·YouTube). 그대로 보존 |
+| files | 전부 | | 기존 글 전용 [{no(정수), source, stored(필수), size(정수)}]. 그대로 보존 |
+
+- 빌드 실패 조건(한국어 메시지 + 종료코드 1): 머리말 없음·형식 오류, 파일명 형식·중복, title·date 누락, date 형식,
+  draft·featured 가 불리언 아님, body_format 값, category 누락·목록 아님·허용값 밖, featured_order 숫자 아님,
+  files 형식(stored 없음, no·size 숫자 아님), gallery 형식, E-Catalog file 누락·/로 시작 안 함·public/ 에 없음.
+- 관리자 서버는 저장 전에 위 조건을 같은 규칙으로 검사해 한국어로 막는다(E-Catalog file 은 .pdf 이고 저장소에 있는 파일인지까지).
+
+### 저장 방식 (기존 글 보존)
+- 머리말은 바뀐 칸만 그 칸의 줄을 바꾼다. 나머지 칸(모르는 칸 포함)·순서·따옴표·본문은 글자 그대로 둔다.
+  값이 같은 칸(예: "2026-03-17" 과 "2026-03-17 00:00:00")은 바꾸지 않는다. 없던 칸은 값이 있을 때만 끝에 붙인다.
+- 본문은 화면에서 고쳤을 때만 바꾼다. 기존 글은 HTML 그대로 열고, 편집기(TipTap)가 그대로 담지 못하는 서식이 있으면 HTML 모드로 연다.
+- GitHub contents API 로 CONTENT_BRANCH 에 커밋. 수정·삭제는 연 때의 sha 를 보내 다르면 409("다른 사람이 먼저 고쳤습니다").
+  커밋 메시지 "[관리자] {게시판} {저장|삭제}: {제목} ({표시 이름})", 업로드는 "[관리자] 업로드: {경로} ({표시 이름})".
+- 첨부(PDF·HWP·HWPX·DOCX·XLSX·ZIP, 20MB 이하): 빌드는 files 칸의 이미지가 아닌 첨부를 기존 글 전용 주소
+  files/{게시판}/{글번호}-{no}.확장자 로 연결하므로 새 글 첨부를 files 에 넣으면 링크가 깨진다.
+  → 대표 결정(2026-11-17): 첨부는 uploads/ 에 올리고 본문에 `<a href="/uploads/…" download="원래이름">원래이름 (크기)</a>` 링크로 넣는다.
+- 사진: 브라우저에서 긴 변 1920px 이하·JPEG 품질 85(투명 PNG 는 PNG), 원본 10MB 초과 거부. 저장 버튼을 누를 때 실제로 쓰인 것만 올린다.
+- 글 삭제 시 그 글에서만 쓰는 업로드(관리자 화면으로 올린 것, D1 uploads·post_uploads 기록 기준)도 함께 지운다.
+
+### API (3-2c)
+| 메서드·경로 | 설명 |
+|---|---|
+| GET /api/posts?lang&board&page&q&category&hidden | 목록 20건씩(제목·분류·날짜·숨김·메인 노출·썸네일), 검색(제목), 분류·숨김 필터 |
+| GET /api/posts/{lang}/{board}/{name} | 글 1건(머리말·본문·sha) |
+| POST /api/posts/{lang}/{board} | 새 글 |
+| PUT /api/posts/{lang}/{board}/{name} | 수정(바뀐 칸만, sha 필수). 숨기기/공개 전환도 이것(draft 만) |
+| DELETE /api/posts/{lang}/{board}/{name}?sha= | 삭제 |
+| POST /api/uploads?path=uploads/…&kind=image\|file | 파일 1개 커밋(본문 = 파일 바이트) |
+- 사진 표시: 기존 사진(/data/…)은 배포본에 원본 대신 large-{이름}.jpg·thumb-{이름}_가로x세로 만 있는 경우가 많아,
+  서버가 저장소 static/ 폴더 목록(GraphQL, 1시간 캐시)으로 실제 파일을 골라(원본·renames.json → 목록은 420x280·900x600 축소본 → large- → thumb-)
+  https://hanbitinnotech.com 에 붙여 보여 준다. /uploads/… 는 저장소 원본(raw.githubusercontent.com, 저장 대상 브랜치).
+- 편집자(editor)도 게시판은 쓸 수 있다. audit_log action: post_create, post_save, post_delete, upload.
+- 목록 읽기: GraphQL 1~2회(폴더 tree oid 로 캐시). 글 1건·저장은 contents API(캐시 없음).
+
 ## 7. 대표 계정
 - `app/scripts/create-admin.mjs` : 아이디·표시 이름·비밀번호(화면 표시 없이 2번 입력)를 묻고 같은 PBKDF2 방식으로 해시를 만든 뒤
   `npx wrangler d1 execute hanbit-admin-db --remote` 로 users 에 role=admin 1건을 넣는다. 비밀번호 원문은 파일·출력에 남기지 않는다
