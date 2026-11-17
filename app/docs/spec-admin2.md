@@ -238,6 +238,18 @@
 - API: GET/PUT /api/pages/{lang}/{cert|history|hanbit|esg|location}(편집자 가능), GET/PUT /api/settings/{lang}/{menu|site|popups}(관리자만),
   GET /api/media?q=&page=(사진 고르기: uploads/·static/ 이미지, thumb- 축소본 제외), GET /api/links?lang=(메뉴 링크용 내부 페이지 목록).
 
+## 6-4. 3-2e·3-2f 추가 (2026-11-17)
+- 3-2e: 저장 후 반영 알림(Actions 30초 확인), 수정 기록 /api/audit, 직원 계정 /api/users(임시 비밀번호·users.must_change, 마이그레이션 0003), 내 계정.
+- 3-2f 운영 전환: CONTENT_BRANCH=main, 허용 Origin 에 https://admin.hanbitinnotech.com. 옛 Sveltia(hpadmin main)는 비상용으로 보관만.
+- FAQ: cms/faq.yml·cms/en/faq.yml items[{category, question, answer(HTML), order, visible}], 없으면 빈 목록으로 새로 만듦(편집자 가능).
+  홈페이지 빌드는 아직 이 파일을 읽지 않는다(홈페이지 쪽 작업).
+- 견적문의: POST /api/inquiry(공개, Origin https://hanbitinnotech.com·www 만, CORS), D1 inquiries(마이그레이션 0004)에만 저장.
+  칸: lang(ko|en), customer_type(personal|company|public 또는 개인|기업|공공), place(house|building|factory|parking|land|etc 또는 한국어),
+  region, scale(선택), interest(선택), name, phone, email, message, agree(true|on|1), website(숨김 스팸 칸, 비워 둠).
+  JSON 또는 form 전송. 응답 {ok, message} / {ok:false, error, field}. 같은 IP 10분 3건(429). 스팸은 저장 없이 ok.
+  RESEND_API_KEY 가 있으면 NOTIFY_EMAIL(기본 hkele@hanmail.net)로 알림(보내는 주소 NOTIFY_FROM, 기본 Resend 시험 주소).
+- 문의함 /api/inquiries: 목록·상세(열면 신규→확인)·상태·메모·CSV(export)·1년 지난 완료 삭제(purge, 관리자). audit inquiry_update·inquiry_export·inquiry_purge.
+
 ## 7. 대표 계정
 - `app/scripts/create-admin.mjs` : 아이디·표시 이름·비밀번호(화면 표시 없이 2번 입력)를 묻고 같은 PBKDF2 방식으로 해시를 만든 뒤
   `npx wrangler d1 execute hanbit-admin-db --remote` 로 users 에 role=admin 1건을 넣는다. 비밀번호 원문은 파일·출력에 남기지 않는다

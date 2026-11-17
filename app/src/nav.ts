@@ -34,8 +34,10 @@ export const MENU: MenuGroup[] = [
       { key: 'hanbit', ko: '회사소개', en: 'About Us', stage: '3-2d' },
       { key: 'esg', ko: 'ESG 경영', en: 'ESG', stage: '3-2d' },
       { key: 'location', ko: 'Contact', stage: '3-2d' },
+      { key: 'faq', ko: 'FAQ' },
     ],
   },
+  { title: '문의', items: [{ key: 'inquiries', ko: '문의함' }] },
   {
     title: '사이트 설정',
     adminOnly: true,

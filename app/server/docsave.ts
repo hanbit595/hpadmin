@@ -9,7 +9,7 @@ import { setPostRefs } from './uploads';
 import { YamlPatchError, patchYaml, readYaml } from './yamlpatch';
 
 export type DocName = PageName | SettingName;
-export const PAGE_NAMES: PageName[] = ['cert', 'history', 'hanbit', 'esg', 'location'];
+export const PAGE_NAMES: PageName[] = ['cert', 'history', 'hanbit', 'esg', 'location', 'faq'];
 export const SETTING_NAMES: SettingName[] = ['menu', 'site', 'popups'];
 const LABEL: Record<DocName, string> = {
   cert: '인증 및 수상',
@@ -17,12 +17,22 @@ const LABEL: Record<DocName, string> = {
   hanbit: '회사소개',
   esg: 'ESG 경영',
   location: 'Contact',
+  faq: 'FAQ',
   menu: '메뉴',
   site: '회사정보',
   popups: '팝업',
 };
 
+/** 파일이 아직 없을 때 새로 만드는 내용(FAQ) */
+const NEW_FILE: Partial<Record<DocName, (lang: string) => string>> = {
+  faq: (lang) =>
+    `# ${lang === 'en' ? '영문 ' : ''}FAQ(자주 묻는 질문). 관리자 화면(admin2)에서 고친다.\n` +
+    '# items: category(분류), question(질문), answer(답변, HTML), order(순서, 작은 수 먼저), visible(노출)\n' +
+    'items: []\n',
+};
+
 export function docPath(lang: string, name: DocName): string {
+  if (name === 'faq') return `cms/${lang === 'en' ? 'en/' : ''}faq.yml`;
   const kind = (PAGE_NAMES as string[]).includes(name) ? 'pages' : 'settings';
   return `cms/${lang === 'en' ? 'en/' : ''}${kind}/${name}.yml`;
 }
@@ -37,8 +47,11 @@ function imagesIn(v: unknown, out: string[] = []): string[] {
 
 export async function getDoc(env: Env, lang: string, name: DocName): Promise<Response> {
   const path = docPath(lang, name);
-  const file = await getFile(env, path);
-  if (!file) return fail(404, `저장소에 ${path} 파일이 없습니다.`);
+  const found = await getFile(env, path);
+  const make = NEW_FILE[name];
+  if (!found && !make) return fail(404, `저장소에 ${path} 파일이 없습니다.`);
+  // 없는 파일(FAQ 처음): 빈 내용으로 열고 저장할 때 만든다(sha '')
+  const file = found ?? { path, sha: '', text: make!(lang) };
   let data: unknown;
   try {
     data = readYaml(file.text);
@@ -57,11 +70,13 @@ export async function getDoc(env: Env, lang: string, name: DocName): Promise<Res
 
 export async function putDoc(env: Env, request: Request, user: SessionUser, lang: string, name: DocName): Promise<Response> {
   const input = await readJson(request);
-  if (!input || typeof input.sha !== 'string' || !input.sha || input.data === undefined)
+  const make = NEW_FILE[name];
+  if (!input || typeof input.sha !== 'string' || (!input.sha && !make) || input.data === undefined)
     return fail(400, '입력 값이 올바르지 않습니다. 화면을 새로 고친 뒤 다시 저장해 주세요.');
   const path = docPath(lang, name);
-  const file = await getFile(env, path);
-  if (!file) return fail(404, `저장소에 ${path} 파일이 없습니다.`);
+  const found = await getFile(env, path);
+  if (!found && !make) return fail(404, `저장소에 ${path} 파일이 없습니다.`);
+  const file = found ?? { path, sha: '', text: make!(lang) };
   if (file.sha !== input.sha)
     return fail(409, '다른 사람이 먼저 이 화면을 고쳐 저장했습니다. 내 변경 내용을 따로 적어 두고, 화면을 새로 고친 뒤 다시 저장해 주세요.');
 
@@ -105,7 +120,7 @@ export async function putDoc(env: Env, request: Request, user: SessionUser, lang
   }
 
   const label = `${LABEL[name]}(${lang === 'en' ? '영문' : '국문'})`;
-  const res = await putFile(env, path, patched.text, `[관리자] ${label} 저장 (${user.displayName})`, file.sha);
+  const res = await putFile(env, path, patched.text, `[관리자] ${label} 저장 (${user.displayName})`, file.sha || undefined);
   const isPage = (PAGE_NAMES as string[]).includes(name);
   await audit(env, user.id, isPage ? 'page_save' : 'settings_save', path, { label, commit: res.commit.slice(0, 7) });
   await setPostRefs(env, path, patched.text);

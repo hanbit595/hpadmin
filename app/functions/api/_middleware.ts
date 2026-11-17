@@ -4,14 +4,20 @@ import { getSession } from '../../server/session';
 
 /** 관리자(admin)만 쓸 수 있는 API 경로. 편집자(editor)는 403. */
 const ADMIN_ONLY = ['/api/settings', '/api/users'];
+/** 관리자 화면 주소(자기 주소 외에 허용, 3-2f 운영 전환) */
+const ALLOWED_ORIGINS = ['https://admin.hanbitinnotech.com', 'https://hanbit-admin.pages.dev'];
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
   const { request, env } = ctx;
   let res: Response;
 
+  // 홈페이지 견적문의 받기는 공개 API: 출처 확인(CORS)·응답 헤더를 그 함수가 직접 한다(3-2f)
+  if (new URL(request.url).pathname === '/api/inquiry') return ctx.next();
+
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     const origin = request.headers.get('Origin');
-    if (!origin || origin !== new URL(request.url).origin) {
+    const self = new URL(request.url).origin;
+    if (!origin || (origin !== self && !ALLOWED_ORIGINS.includes(origin))) {
       return withHeaders(fail(403, '허용되지 않은 주소에서 보낸 요청입니다.'));
     }
   }

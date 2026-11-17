@@ -1753,6 +1753,47 @@ input {
   margin-top: 16px;
 }
 
+/* ───── 3-2f: FAQ·문의함 ───── */
+.faq-card.off .menu-title {
+  opacity: 0.45;
+}
+.faq-answer {
+  border: 1px solid #e3e6eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.count-new {
+  background: #fff1cc;
+  color: #6b4e00;
+  font-weight: 700;
+}
+.inq-banner {
+  display: block;
+  text-decoration: none;
+}
+.inq-table th {
+  width: 130px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.inq-table td {
+  text-align: left;
+  width: auto;
+  overflow-wrap: anywhere;
+}
+.inq-msg-title {
+  margin-top: 16px;
+}
+.inq-msg {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  margin: 0;
+}
+.inq-memo {
+  margin: 14px 0 10px;
+}
+
 /* 좁은 화면: [입력 | 미리보기] 탭 */
 @media (max-width: 1100px) {
   .ed-tabs {

@@ -1,6 +1,6 @@
 // 관리자 틀: 상단바 + 왼쪽 메뉴(좁은 화면에서는 ☰ 로 여는 서랍) + 본문
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
-import { api, type Summary, type User } from './api';
+import { api, request, type Summary, type User } from './api';
 import { MENU, SITE_URL, findItem, label, parsePath, pathOf, saveLang, savedLang, type Lang } from './nav';
 import { NAME_RE, isBoard } from '../shared/boards';
 import BoardList from './pages/BoardList';
@@ -31,6 +31,9 @@ const DOC_PAGES: Record<string, (p: DocProps) => ReactNode> = {
 import DeployToast from './DeployToast';
 import { Account, AuditLog, Users } from './pages/AccountPages';
 import Dashboard from './pages/Dashboard';
+import Inquiries from './pages/Inquiries';
+
+const FaqPage = lazy(() => import('./docs/FaqPage'));
 import Placeholder from './pages/Placeholder';
 import { linkClick, navigate, usePathname } from './router';
 
@@ -108,13 +111,29 @@ export default function Shell({
   const found = findItem(key);
   const counts = summary.data?.counts[lang];
 
+  // 문의함 신규 건수(메뉴 배지·대시보드). 화면을 옮길 때마다 다시 센다
+  const [newInq, setNewInq] = useState(0);
+  useEffect(() => {
+    request<{ counts: Record<string, number> }>('GET', '/api/inquiries?status=new&page=1').then((r) => r.ok && r.data && setNewInq(r.data.counts.new ?? 0));
+  }, [pathname]);
+
   useEffect(() => {
     const name = key === '' ? '대시보드' : found ? found.item.ko : '없는 화면';
     document.title = `${name} · ${lang === 'en' ? '영문' : '국문'} | 한빛이노텍 관리자`;
   }, [key, found, lang]);
 
   let page;
-  if (key === '') page = <Dashboard user={user} lang={lang} summary={summary} onExpired={onExpired} />;
+  if (key === '')
+    page = (
+      <>
+        {newInq > 0 && (
+          <a className="notice notice-lock inq-banner" href={pathOf(lang, 'inquiries')} onClick={linkClick(pathOf(lang, 'inquiries'))}>
+            새 견적문의 <b>{newInq}건</b>이 있습니다 → 문의함에서 확인
+          </a>
+        )}
+        <Dashboard user={user} lang={lang} summary={summary} onExpired={onExpired} />
+      </>
+    );
   else if (!found || (sub && !isBoard(key)))
     page = <Placeholder title="없는 화면" message="주소가 올바르지 않습니다. 왼쪽 메뉴에서 선택해 주세요." lang={lang} />;
   else if (found.group.adminOnly && !isAdmin)
@@ -128,9 +147,16 @@ export default function Shell({
     );
   else if (isBoard(key))
     page = <Placeholder title="없는 글" message="글 주소가 올바르지 않습니다. 목록에서 선택해 주세요." lang={lang} />;
+  else if (key === 'inquiries') page = <Inquiries key={sub ?? 'list'} lang={lang} id={sub} isAdmin={isAdmin} onExpired={onExpired} />;
   else if (key === 'users' && !sub) page = <Users onExpired={onExpired} />;
   else if (key === 'audit' && !sub) page = <AuditLog onExpired={onExpired} />;
   else if (key === 'account' && !sub) page = <Account user={user} onRenamed={(n) => onUserChange({ ...user, displayName: n })} />;
+  else if (key === 'faq' && !sub)
+    page = (
+      <Suspense fallback={<div className="loading">불러오는 중…</div>}>
+        <FaqPage key={lang} lang={lang} onExpired={onExpired} />
+      </Suspense>
+    );
   else if (DOC_PAGES[key] && !sub)
     page = (
       <Suspense fallback={<div className="loading">불러오는 중…</div>}>
@@ -201,6 +227,7 @@ export default function Shell({
                   >
                     <span>{label(item, lang)}</span>
                     {item.count && item.count !== 'cert' && <span className="count">{n ?? '·'}</span>}
+                    {item.key === 'inquiries' && newInq > 0 && <span className="count count-new">신규 {newInq}</span>}
                   </a>
                 );
               })}

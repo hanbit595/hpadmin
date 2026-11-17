@@ -3,7 +3,7 @@
 
 export class CheckError extends Error {}
 
-export type PageName = 'cert' | 'history' | 'hanbit' | 'esg' | 'location';
+export type PageName = 'cert' | 'history' | 'hanbit' | 'esg' | 'location' | 'faq';
 export type SettingName = 'menu' | 'site' | 'popups';
 
 export interface Refs {
@@ -180,6 +180,19 @@ function location(d: O, officeNames: string[]) {
   });
 }
 
+// FAQ(3-2f): items[{category, question, answer(HTML), order, visible}] — 빈 목록 허용
+function faq(d: O) {
+  list(d, 'items', '', false).forEach((x, i) => {
+    const it = obj(x, `${i + 1}번째 질문`);
+    const w = `${i + 1}번째 질문`;
+    text(it.category, `${w} 분류`);
+    text(it.question, `${w} 질문`);
+    text(it.answer, `${w} 답변`);
+    num(it.order, `${w} 순서`);
+    flag(it.visible, `${w} 노출`);
+  });
+}
+
 // ───── 사이트 설정 ─────
 function menu(d: O, refs: Refs) {
   list(d, 'menu', '').forEach((x, i) => {
@@ -251,6 +264,7 @@ export function checkData(name: PageName | SettingName, lang: string, data: unkn
   else if (name === 'hanbit') hanbit(d, refs, lang);
   else if (name === 'esg') esg(d, refs);
   else if (name === 'location') location(d, extra.officeNames ?? []);
+  else if (name === 'faq') faq(d);
   else if (name === 'menu') menu(d, refs);
   else if (name === 'site') site(d, refs, lang);
   else popups(d, refs);
