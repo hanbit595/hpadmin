@@ -194,6 +194,50 @@
 - 편집자(editor)도 게시판은 쓸 수 있다. audit_log action: post_create, post_save, post_delete, upload.
 - 목록 읽기: GraphQL 1~2회(폴더 tree oid 로 캐시). 글 1건·저장은 contents API(캐시 없음).
 
+## 6-3. 회사 페이지·사이트 설정 저장 규칙 (3-2d, hopage build/cms_pages.py·build.py 조사 결과, 2026-11-17)
+### 파일
+| 화면 | 국문 | 영문 | 읽는 방식 |
+|---|---|---|---|
+| 인증 및 수상 | cms/pages/cert.yml | cms/en/pages/cert.yml | CmsLoader(true/false 만 불리언) |
+| 연혁 | cms/pages/history.yml | cms/en/pages/history.yml | 〃 |
+| 회사소개 | cms/pages/hanbit.yml | cms/en/pages/hanbit.yml | 〃 |
+| ESG 경영 | cms/pages/esg.yml | cms/en/pages/esg.yml | 〃 |
+| Contact | cms/pages/location.yml | cms/en/pages/location.yml | 〃 (+ 같은 언어 site.yml) |
+| 메뉴 | cms/settings/menu.yml | cms/en/settings/menu.yml | yaml.safe_load(YAML 1.1: yes·no·on·off 도 불리언) |
+| 회사정보 | cms/settings/site.yml | cms/en/settings/site.yml | 〃 |
+| 팝업 | cms/settings/popups.yml | cms/en/settings/popups.yml | 〃 |
+- 파일마다 맨 위 설명 주석과 칸 옆 주석이 있다 → 저장할 때 보존한다.
+
+### 칸과 빌드 실패 조건
+- 공통 이미지 칸: /로 시작(//금지)하는 사이트 주소이고 public/ 에 파일이 있어야 함(static/ 또는 uploads/, renames.json 으로 바뀐 이름 인정).
+- 인증(cert): categories[글자, 1개 이상, 중복 금지], items[1개 이상]{category(필수, categories 중 하나), name(필수), issuer(선택),
+  date(선택, YYYY-MM-DD 또는 YYYY-MM), image(필수), visible(불리언, 기본 true), order(숫자, 기본 0)}.
+  화면: 구분 안에서 order → 파일 순서. 노출 항목이 없는 구분은 숨김.
+- 연혁(history): periods[1개 이상]{title(필수), anchor(선택, 영문·숫자·-·_, 기간끼리 중복 금지, 비우면 his-N), image(필수),
+  years[1개 이상]{year(필수, 19xx·20xx, 같은 기간 안 중복 금지), months[1개 이상]{month("01"~"12"), items[글자 1개 이상]}}}.
+  화면은 큰 연도·큰 달이 위(적은 순서 무관). 한 달 2칸까지 한 줄에 나옴. 영문은 | 로 적은 끝 줄바꿈을 보존(keep_end).
+- 회사소개(hanbit): hero{title, image(국문)|video(영문, .mov 는 빌드가 .mp4 로 바꾼 것 인정)}, intro_texts 꼭 3개, photos 꼭 6개(이미지),
+  energy_text, sun_texts 꼭 2개, ending_text — 모두 필수. 개수 고정(화면 움직임 스크립트와 맞물림).
+- ESG(esg): intro{title, text}, flow_text, pillars[1개 이상]{title, icon(이미지), text}, details[1개 이상]{title, items[1개 이상]} — 모두 필수.
+- Contact(location): locations[1개 이상]{office(필수, 같은 언어 site.yml offices 의 name 과 똑같이), label, title(필수),
+  map(필수, https://www.google.com/maps/embed 로 시작), map_indent(선택, 0~40 숫자, 국문 기록용)}. 주소·전화·메일은 site.yml.
+- 메뉴(menu): menu[]{label(필수), link, visible(false 면 숨김), class(마크업 유지용, 화면에 숨김·보존), items[]{label(필수), link(/ 또는 http),
+  new_window, visible, class}}. 대메뉴 link 를 비우면 첫 노출 소메뉴로(노출 소메뉴도 없으면 실패). 노출된 내부 link 는 public/ 에 있어야 함.
+- 회사정보(site): offices[1개 이상]{name, address 둘 다 필수}, tel·email 필수, brochure(국문 필수·영문 선택, / 또는 http, 내부면 public/ 에 있어야 함),
+  per_page(국문, 1 이상 숫자), seo_description(국문, 필수). offices 이름을 바꾸면 Contact office 연결이 깨져 실패.
+- 팝업(popups): popups[]{title, image, link(선택, / 또는 http), start·end(YYYY-MM-DD, start ≤ end), active(false 면 HTML 에 안 넣음),
+  id(1 이상 숫자, 중복 금지, 비우면 순서 번호), width·height·top·left(0 이상 숫자, 기본 450·660·150·10)}. active 팝업은 image 필수·존재.
+  노출 기간은 방문자 브라우저가 start 0시 ~ end 23:59:59(한국 시간)로 판단.
+
+### 저장 방식(보존)
+- 원문 YAML 을 그대로 두고 바뀐 값의 자리만 고친다(server/yamlpatch.ts). 글자 칸은 원래 따옴표 방식(따옴표 없음·"…"·'…'·|-)을 따르고,
+  따옴표 없이 쓰면 뜻이 바뀌는 값(yes·no·숫자·날짜 모양 등)은 작은따옴표로. 목록은 바뀌지 않은 항목의 원문을 그대로 재사용
+  (추가·삭제·순서 변경 후 되돌리면 원문과 같아짐). 주석·모르는 칸은 그대로. 값이 모두 같으면 커밋하지 않는다.
+- 커밋 메시지 "[관리자] {페이지} 저장 ({표시 이름})"(예: 인증 및 수상(국문)), sha 다르면 409. audit_log page_save·settings_save.
+- 저장 전 위 빌드 실패 조건을 서버에서 검사(이미지·내부 링크 존재는 저장소 static/·uploads/·D1 업로드 기록·생성 페이지 목록으로).
+- API: GET/PUT /api/pages/{lang}/{cert|history|hanbit|esg|location}(편집자 가능), GET/PUT /api/settings/{lang}/{menu|site|popups}(관리자만),
+  GET /api/media?q=&page=(사진 고르기: uploads/·static/ 이미지, thumb- 축소본 제외), GET /api/links?lang=(메뉴 링크용 내부 페이지 목록).
+
 ## 7. 대표 계정
 - `app/scripts/create-admin.mjs` : 아이디·표시 이름·비밀번호(화면 표시 없이 2번 입력)를 묻고 같은 PBKDF2 방식으로 해시를 만든 뒤
   `npx wrangler d1 execute hanbit-admin-db --remote` 로 users 에 role=admin 1건을 넣는다. 비밀번호 원문은 파일·출력에 남기지 않는다

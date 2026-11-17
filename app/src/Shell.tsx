@@ -1,11 +1,26 @@
 // 관리자 틀: 상단바 + 왼쪽 메뉴(좁은 화면에서는 ☰ 로 여는 서랍) + 본문
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { api, type Summary, type User } from './api';
 import { MENU, SITE_URL, findItem, label, parsePath, pathOf, saveLang, savedLang, type Lang } from './nav';
 import { NAME_RE, isBoard } from '../shared/boards';
 import BoardList from './pages/BoardList';
 // 글쓰기 화면(편집기 포함)은 열 때 따로 불러온다
 const PostEditor = lazy(() => import('./pages/PostEditor'));
+const CertPage = lazy(() => import('./docs/CertPage'));
+const HistoryPage = lazy(() => import('./docs/HistoryPage'));
+const HanbitPage = lazy(() => import('./docs/SectionPages').then((m) => ({ default: m.HanbitPage })));
+const EsgPage = lazy(() => import('./docs/SectionPages').then((m) => ({ default: m.EsgPage })));
+const LocationPage = lazy(() => import('./docs/SectionPages').then((m) => ({ default: m.LocationPage })));
+
+type DocProps = { lang: Lang; onExpired: () => void; isAdmin: boolean };
+/** 회사 페이지·사이트 설정 화면(메뉴 키 → 화면). key 로 언어가 바뀌면 새로 읽는다 */
+const DOC_PAGES: Record<string, (p: DocProps) => ReactNode> = {
+  cert: (p) => <CertPage key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
+  history: (p) => <HistoryPage key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
+  hanbit: (p) => <HanbitPage key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
+  esg: (p) => <EsgPage key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
+  location: (p) => <LocationPage key={p.lang} lang={p.lang} onExpired={p.onExpired} isAdmin={p.isAdmin} />,
+};
 import Dashboard from './pages/Dashboard';
 import Placeholder from './pages/Placeholder';
 import { linkClick, navigate, usePathname } from './router';
@@ -94,6 +109,12 @@ export default function Shell({ user, onLogout, onExpired }: { user: User; onLog
     );
   else if (isBoard(key))
     page = <Placeholder title="없는 글" message="글 주소가 올바르지 않습니다. 목록에서 선택해 주세요." lang={lang} />;
+  else if (DOC_PAGES[key] && !sub)
+    page = (
+      <Suspense fallback={<div className="loading">불러오는 중…</div>}>
+        {DOC_PAGES[key]({ lang, onExpired, isAdmin })}
+      </Suspense>
+    );
   else
     page = (
       <Placeholder
