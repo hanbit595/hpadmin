@@ -11,6 +11,9 @@ const HistoryPage = lazy(() => import('./docs/HistoryPage'));
 const HanbitPage = lazy(() => import('./docs/SectionPages').then((m) => ({ default: m.HanbitPage })));
 const EsgPage = lazy(() => import('./docs/SectionPages').then((m) => ({ default: m.EsgPage })));
 const LocationPage = lazy(() => import('./docs/SectionPages').then((m) => ({ default: m.LocationPage })));
+const MenuSettings = lazy(() => import('./docs/SettingsPages').then((m) => ({ default: m.MenuSettings })));
+const SiteSettings = lazy(() => import('./docs/SettingsPages').then((m) => ({ default: m.SiteSettings })));
+const PopupsSettings = lazy(() => import('./docs/SettingsPages').then((m) => ({ default: m.PopupsSettings })));
 
 type DocProps = { lang: Lang; onExpired: () => void; isAdmin: boolean };
 /** 회사 페이지·사이트 설정 화면(메뉴 키 → 화면). key 로 언어가 바뀌면 새로 읽는다 */
@@ -20,6 +23,10 @@ const DOC_PAGES: Record<string, (p: DocProps) => ReactNode> = {
   hanbit: (p) => <HanbitPage key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
   esg: (p) => <EsgPage key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
   location: (p) => <LocationPage key={p.lang} lang={p.lang} onExpired={p.onExpired} isAdmin={p.isAdmin} />,
+  // 사이트 설정(관리자만: 편집자는 위에서 "관리자만" 안내로 막힘)
+  menu: (p) => <MenuSettings key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
+  site: (p) => <SiteSettings key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
+  popups: (p) => <PopupsSettings key={p.lang} lang={p.lang} onExpired={p.onExpired} />,
 };
 import Dashboard from './pages/Dashboard';
 import Placeholder from './pages/Placeholder';

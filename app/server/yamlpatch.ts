@@ -162,9 +162,27 @@ function diffNode(src: string, node: Node | null, val: unknown): Edit[] {
   }
 
   if (isSeq(node) && Array.isArray(val)) {
+    if (node.flow && node.items.length === 0 && val.length) {
+      // "키: []" → 여러 줄 목록
+      const keyIndent = /^ */.exec(src.slice(lineStart(src, start)))![0].length;
+      const dash = keyIndent + 2;
+      const text = val.map((v) => `\n${' '.repeat(dash)}- ${block(v, dash + 2)}`).join('');
+      const s = src[start - 1] === ' ' ? start - 1 : start;
+      return [{ start: s, end, text }];
+    }
     if (node.flow) return [{ start, end, text: flow(val) }];
-    if (!val.length) throw new YamlPatchError('목록을 모두 비울 수 없습니다(1개 이상 필요).');
     const items = node.items as Node[];
+    if (!val.length) {
+      // 빈 목록: "키:\n  - …" → "키: []"
+      const s0 = lineStart(src, items[0].range![0]);
+      const e0 = lineEnd(src, items[items.length - 1].range![1]);
+      const colon = src.lastIndexOf(':', s0 - 1);
+      if (colon < 0) throw new YamlPatchError('목록을 비우지 못했습니다.');
+      return [
+        { start: colon + 1, end: colon + 1, text: ' []' },
+        { start: s0, end: e0, text: '' },
+      ];
+    }
     const starts = items.map((it) => lineStart(src, it.range![0]));
     const seqStart = starts[0];
     const ends = items.map((it, i) => (i < items.length - 1 ? starts[i + 1] : lineEnd(src, it.range![1])));
