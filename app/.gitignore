@@ -23,6 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# 화면 시험(Playwright) 결과·스크린샷
+test-results
+
 # Cloudflare 로컬 상태·비밀 (커밋 금지)
 .wrangler
 .dev.vars*

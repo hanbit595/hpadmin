@@ -15,6 +15,8 @@ interface Props {
   onImages?: (files: File[]) => Promise<string[]>;
   /** 첨부 파일 → 본문에 넣을 링크들 */
   onFiles?: (files: File[]) => Promise<{ href: string; name: string; label: string }[]>;
+  /** 바깥에서 본문을 바꿨을 때(첨부 삭제 등) 올리는 번호: 편집기 내용을 html 로 다시 맞춘다 */
+  syncKey?: number;
 }
 
 function Icon({ d }: { d: string }) {
@@ -25,7 +27,7 @@ function Icon({ d }: { d: string }) {
   );
 }
 
-export default function RichEditor({ html, mode, onModeChange, onChange, onImages, onFiles }: Props) {
+export default function RichEditor({ html, mode, onModeChange, onChange, onImages, onFiles, syncKey }: Props) {
   const imgInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const onChangeRef = useRef(onChange);
@@ -58,6 +60,14 @@ export default function RichEditor({ html, mode, onModeChange, onChange, onImage
     },
     onUpdate: ({ editor: ed }) => onChangeRef.current(ed.getHTML()),
   });
+
+  const htmlRef = useRef(html);
+  useEffect(() => {
+    htmlRef.current = html;
+  });
+  useEffect(() => {
+    if (editor && syncKey && mode === 'editor') editor.commands.setContent(htmlRef.current, { emitUpdate: false });
+  }, [editor, syncKey, mode]);
 
   async function insertImages(files: File[]) {
     if (!editor || !onImagesRef.current) return;
@@ -126,7 +136,11 @@ export default function RichEditor({ html, mode, onModeChange, onChange, onImage
     const u = url.trim();
     if (!u || u === 'https://') editor.chain().focus().extendMarkRange('link').unsetLink().run();
     else if (!/^(https?:\/\/|\/|mailto:|tel:)/i.test(u)) window.alert('주소는 https:// 또는 / 로 시작해야 합니다.');
-    else editor.chain().focus().extendMarkRange('link').setLink({ href: u }).run();
+    else {
+      editor.chain().focus().extendMarkRange('link').setLink({ href: u }).run();
+      // 링크 글자 선택을 풀고 커서를 링크 끝으로(다음 입력이 링크 글자를 덮어쓰지 않게)
+      editor.chain().focus().setTextSelection(editor.state.selection.to).unsetMark('link').run();
+    }
   }
 
   const isEditor = mode === 'editor';
@@ -134,7 +148,15 @@ export default function RichEditor({ html, mode, onModeChange, onChange, onImage
 
   return (
     <div className="rte">
-      <div className="rte-toolbar" role="toolbar" aria-label="본문 서식">
+      <div
+        className="rte-toolbar"
+        role="toolbar"
+        aria-label="본문 서식"
+        // 버튼을 눌러도 편집기의 커서·선택 영역이 그대로 남게(포커스를 뺏지 않음)
+        onMouseDown={(e) => {
+          if ((e.target as HTMLElement).closest('button') && mode === 'editor') e.preventDefault();
+        }}
+      >
         {isEditor && editor && (
           <>
             <button type="button" className={b(st?.bold)} aria-label="굵게" aria-pressed={!!st?.bold} onClick={() => editor.chain().focus().toggleBold().run()}>

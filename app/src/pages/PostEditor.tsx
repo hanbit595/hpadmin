@@ -8,7 +8,8 @@ import { assetRef, editorLoss } from '../editor/extensions';
 import RichEditor, { type BodyMode } from '../editor/RichEditor';
 import { pathOf } from '../nav';
 import { linkClick, navigate, setLeaveGuard } from '../router';
-import { ImageField, GalleryField, PdfField } from './fields';
+import { addFile, addImages, attachmentsIn, removeAttachment, sizeLabel, uploadUsed } from '../upload';
+import { FileIcon, GalleryField, ImageField, PdfField } from './fields';
 import Preview from './Preview';
 
 export interface Form {
@@ -111,6 +112,7 @@ export default function PostEditor({ lang, board, name, onExpired }: { lang: Lan
   const [lossNote, setLossNote] = useState('');
   const [ready, setReady] = useState(isNew);
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState('');
   // 새 글 저장 뒤 수정 화면으로 넘어왔을 때 알림
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(() => {
     try {
@@ -186,7 +188,36 @@ export default function PostEditor({ lang, board, name, onExpired }: { lang: Lan
   }, []);
 
   const set = useCallback(<K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v })), []);
-  const ctx: AssetCtx = loaded ? { branch: loaded.branch, resolved: loaded.resolved } : { branch: 'main' };
+  const ctx: AssetCtx = useMemo(() => (loaded ? { branch: loaded.branch, resolved: loaded.resolved } : { branch: 'main' }), [loaded]);
+  const showError = useCallback((text: string) => setMessage({ kind: 'error', text }), []);
+  const [editorSync, setEditorSync] = useState(0);
+  const attachments = useMemo(() => attachmentsIn(body), [body]);
+
+  const onImages = useCallback(
+    async (files: File[]) => {
+      const { paths, errors } = await addImages(files);
+      if (errors.length) showError(errors.join(' '));
+      return paths;
+    },
+    [showError],
+  );
+  const onFiles = useCallback(
+    async (files: File[]) => {
+      const out: { href: string; name: string; label: string }[] = [];
+      const errors: string[] = [];
+      for (const f of files) {
+        try {
+          const href = addFile(f);
+          out.push({ href, name: f.name, label: `${f.name} (${sizeLabel(f.size)})` });
+        } catch (e) {
+          errors.push(e instanceof Error ? e.message : '첨부하지 못했습니다.');
+        }
+      }
+      if (errors.length) showError(errors.join(' '));
+      return out;
+    },
+    [showError],
+  );
 
   function check(): string | null {
     if (!form.title.trim()) return koMedia ? '현장명을 입력해 주세요.' : '제목을 입력해 주세요.';
@@ -202,6 +233,15 @@ export default function PostEditor({ lang, board, name, onExpired }: { lang: Lan
     if (err) return setMessage({ kind: 'error', text: err });
     setSaving(true);
     setMessage(null);
+    // 글에 쓰인 사진·첨부(아직 브라우저에만 있는 것)를 먼저 올린다
+    const upErr = await uploadUsed(JSON.stringify(changedFields) + (isNew || bodyDirty ? body : ''), (d, t) =>
+      setProgress(t ? `사진·첨부 올리는 중 ${d}/${t}` : ''),
+    );
+    setProgress('');
+    if (upErr) {
+      setSaving(false);
+      return setMessage({ kind: 'error', text: `${upErr} 글은 저장하지 않았습니다. 다시 저장해 주세요.` });
+    }
     let r;
     if (isNew) r = await request<SaveResult>('POST', `/api/posts/${lang}/${board}`, { fields: changedFields, body });
     else
@@ -274,7 +314,7 @@ export default function PostEditor({ lang, board, name, onExpired }: { lang: Lan
           </button>
         )}
         <button type="button" className="btn-save" disabled={saving} onClick={save}>
-          {saving ? '저장 중…' : saveLabel}
+          {saving ? progress || '저장 중…' : saveLabel}
         </button>
       </div>
 
@@ -362,10 +402,10 @@ export default function PostEditor({ lang, board, name, onExpired }: { lang: Lan
             {koMedia && <small className="f-help">홈페이지 표시 제목: {subject}</small>}
 
             {board === 'library' && (
-              <PdfField label="E-Catalog PDF" required value={form.file} onChange={(v) => set('file', v)} ctx={ctx} />
+              <PdfField label="E-Catalog PDF" required value={form.file} onChange={(v) => set('file', v)} onError={showError} />
             )}
 
-            <ImageField label="대표 사진 (목록 썸네일)" value={form.thumbnail} onChange={(v) => set('thumbnail', v)} ctx={ctx} />
+            <ImageField label="대표 사진 (목록 썸네일)" value={form.thumbnail} onChange={(v) => set('thumbnail', v)} ctx={ctx} onError={showError} />
 
             <label className="f">
               <span>요약</span>
@@ -377,7 +417,7 @@ export default function PostEditor({ lang, board, name, onExpired }: { lang: Lan
               />
             </label>
 
-            {koMedia && <GalleryField value={form.gallery} onChange={(v) => set('gallery', v)} ctx={ctx} />}
+            {koMedia && <GalleryField value={form.gallery} onChange={(v) => set('gallery', v)} ctx={ctx} onError={showError} />}
           </div>
 
           <div className="ed-card ed-card-flush">
@@ -390,7 +430,37 @@ export default function PostEditor({ lang, board, name, onExpired }: { lang: Lan
                 setBody(h);
                 setBodyDirty(true);
               }}
+              onImages={onImages}
+              onFiles={onFiles}
+              syncKey={editorSync}
             />
+          </div>
+
+          <div className="ed-card">
+            <div className="f">
+              <span>첨부파일</span>
+              {attachments.length === 0 && (
+                <small>본문 편집기의 클립 버튼(파일 첨부)으로 넣습니다. PDF·HWP·HWPX·DOCX·XLSX·ZIP, 20MB 이하. 본문에 내려받기 링크로 들어갑니다.</small>
+              )}
+              {attachments.map((a) => (
+                <div className="attach-row" key={a.href}>
+                  <FileIcon />
+                  <span className="attach-name">{a.text}</span>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    aria-label={`${a.text} 첨부 삭제`}
+                    onClick={() => {
+                      setBody((b) => removeAttachment(b, a.href));
+                      setBodyDirty(true);
+                      setEditorSync((n) => n + 1);
+                    }}
+                  >
+                    삭제
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="ed-card">
@@ -417,7 +487,13 @@ export default function PostEditor({ lang, board, name, onExpired }: { lang: Lan
                     onChange={(e) => set('featuredOrder', e.target.value.replace(/[^\d]/g, ''))}
                   />
                 </label>
-                <ImageField label="메인 사진 (비우면 대표 사진)" value={form.featuredImage} onChange={(v) => set('featuredImage', v)} ctx={ctx} />
+                <ImageField
+                  label="메인 사진 (비우면 대표 사진)"
+                  value={form.featuredImage}
+                  onChange={(v) => set('featuredImage', v)}
+                  ctx={ctx}
+                  onError={showError}
+                />
               </div>
             )}
           </div>

@@ -5,6 +5,7 @@ import { ContentError, contentBranch, deleteFile, fileSha, getFile, putFile } fr
 import { FormatError, editFrontMatter, newMd, parseMd, rebuild } from '../../../server/frontmatter';
 import { fail, json, readJson, type Env } from '../../../server/http';
 import { listPosts } from '../../../server/list';
+import { removePostUploads, setPostRefs, uploadRefs } from '../../../server/uploads';
 import { checkPost, cleanFields, commitMessage, postPath } from '../../../server/save';
 import { audit, getSession, type SessionUser } from '../../../server/session';
 
@@ -83,9 +84,22 @@ async function onPut(env: Env, request: Request, user: SessionUser, t: Required<
   const next = parseMd(text, path);
   await checkPost(env, next.fm, t.lang, t.board, path, ed.changed.includes('file'));
   const title = String(next.fm.title ?? t.name);
+  await checkUploadsExist(env, text, md.fmText + md.body);
   const res = await putFile(env, path, text, commitMessage(t.lang, t.board, '저장', title, user), file.sha);
   await audit(env, user.id, 'post_save', path, { title, changed: ed.changed, body: bodyChanged, commit: res.commit.slice(0, 7) });
+  await setPostRefs(env, path, text);
   return json({ ok: true, sha: res.sha, commit: res.commit, path, changed: ed.changed, bodyChanged, branch: contentBranch(env) });
+}
+
+/** 새로 적힌 /uploads/… 파일이 저장소에 실제로 있는지(올리기 실패한 사진을 가리키는 글을 막음) */
+async function checkUploadsExist(env: Env, text: string, before: string) {
+  const old = new Set(uploadRefs(before));
+  const added = uploadRefs(text).filter((u) => !old.has(u));
+  for (const u of added.slice(0, 30)) {
+    // 관리자 화면으로 올린 파일은 D1 기록(커밋 성공 뒤 남김)으로 확인, 아니면 저장소에 물어봄
+    const known = await env.DB.prepare('SELECT 1 FROM uploads WHERE path = ?').bind(u).first();
+    if (!known && !(await fileSha(env, u))) throw new ContentError(400, `글에 넣은 파일이 저장소에 없습니다(올리기 실패): /${u}. 그 사진·첨부를 다시 넣어 주세요.`);
+  }
 }
 
 /** 새 글: 파일명 = 저장 시각(한국) YYYYMMDD-HHMMSS, 이미 있으면 1초씩 늘림 */
@@ -117,6 +131,7 @@ async function onPost(env: Env, request: Request, user: SessionUser, t: Target) 
   const where = postPath(t.lang, t.board, 'new');
   await checkPost(env, parseMd(text, where).fm, t.lang, t.board, where, true);
   const title = String(f.title);
+  await checkUploadsExist(env, text, '');
   let now = Date.now();
   for (let i = 0; i < 5; i++, now += 1000) {
     const name = kstNow(now).replace(/[-:]/g, '').replace(' ', '-');
@@ -125,6 +140,7 @@ async function onPost(env: Env, request: Request, user: SessionUser, t: Target) 
     try {
       const res = await putFile(env, path, text, commitMessage(t.lang, t.board, '저장', title, user));
       await audit(env, user.id, 'post_create', path, { title, commit: res.commit.slice(0, 7) });
+      await setPostRefs(env, path, text);
       return json({ ok: true, name, path, sha: res.sha, commit: res.commit, branch: contentBranch(env) });
     } catch (e) {
       if (e instanceof ContentError && e.status === 422) continue; // 그 사이 같은 이름이 생김
@@ -141,8 +157,10 @@ async function onDelete(env: Env, request: Request, user: SessionUser, t: Requir
   if (file.sha !== sha) return fail(409, '다른 사람이 먼저 이 글을 고쳤습니다. 글을 다시 열어 확인한 뒤 삭제해 주세요.');
   const title = String(md.fm.title ?? t.name);
   const commit = await deleteFile(env, path, file.sha, commitMessage(t.lang, t.board, '삭제', title, user));
-  await audit(env, user.id, 'post_delete', path, { title, commit: commit.slice(0, 7) });
-  return json({ ok: true, path, commit, branch: contentBranch(env) });
+  // 그 글에서만 쓰던(관리자 화면으로 올린) 사진·첨부도 지운다
+  const removed = await removePostUploads(env, user, path, file.text);
+  await audit(env, user.id, 'post_delete', path, { title, commit: commit.slice(0, 7), uploadsRemoved: removed });
+  return json({ ok: true, path, commit, removed, branch: contentBranch(env) });
 }
 
 export const onRequest: PagesFunction<Env> = async ({ request, env, params }) => {

@@ -89,6 +89,7 @@ export async function checkPost(
     if (!/\.pdf$/i.test(file)) throw new ContentError(400, 'E-Catalog 파일은 PDF 여야 합니다.');
     const rel = file.replace(/^\//, '').split(/[?#]/)[0];
     const repoPath = rel.toLowerCase().startsWith('uploads/') ? rel : `static/${renames[rel] ?? rel}`;
-    if (!(await fileSha(env, repoPath))) throw new ContentError(400, `E-Catalog PDF 가 홈페이지 저장소에 없습니다: ${file}`);
+    const known = repoPath.startsWith('uploads/') && (await env.DB.prepare('SELECT 1 FROM uploads WHERE path = ?').bind(repoPath).first());
+    if (!known && !(await fileSha(env, repoPath))) throw new ContentError(400, `E-Catalog PDF 가 홈페이지 저장소에 없습니다: ${file}`);
   }
 }

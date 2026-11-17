@@ -678,6 +678,7 @@ input {
   min-width: 720px;
   border-collapse: collapse;
   font-size: 15px;
+  word-break: keep-all;
 }
 .post-table th {
   padding: 12px 16px;
@@ -991,7 +992,7 @@ input {
   gap: 12px;
 }
 .f-grid3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);
 }
 .f-grid2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1063,6 +1064,114 @@ input {
 }
 .gallery-btns .btn-row {
   padding: 4px 8px;
+}
+
+.drop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 2px dashed #c3cad6;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+.drop.over {
+  border-color: var(--navy);
+  background: var(--navy-soft);
+}
+.drop svg {
+  flex-shrink: 0;
+}
+.drop-text {
+  font-size: 14px;
+  color: #3a404c;
+  line-height: 1.6;
+}
+.drop-text small {
+  color: #5b6270;
+  font-size: 13px;
+}
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--navy);
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.img-path {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.attach-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e3e6eb;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.attach-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 미리보기 */
+.pv {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pv-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+.pv-dev {
+  display: flex;
+  gap: 4px;
+}
+.pv-dev button {
+  padding: 6px 12px;
+  border: 1px solid #d5d9e0;
+  border-radius: 8px;
+  background: #fff;
+  color: #3a404c;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pv-dev button.on {
+  border-color: var(--navy);
+  background: #eaf0fb;
+  color: var(--navy);
+  font-weight: 700;
+}
+.pv-frame {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #d5d9e0;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(20, 30, 60, 0.08);
+}
+.pv-frame iframe {
+  display: block;
+  border: 0;
+  background: #fff;
+  transform-origin: 0 0;
+}
+.pv-note {
+  margin: 0;
+  font-size: 13px;
+  color: #5b6270;
 }
 
 /* 본문 편집기 */

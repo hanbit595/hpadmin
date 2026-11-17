@@ -167,6 +167,18 @@
 - 사진: 브라우저에서 긴 변 1920px 이하·JPEG 품질 85(투명 PNG 는 PNG), 원본 10MB 초과 거부. 저장 버튼을 누를 때 실제로 쓰인 것만 올린다.
 - 글 삭제 시 그 글에서만 쓰는 업로드(관리자 화면으로 올린 것, D1 uploads·post_uploads 기록 기준)도 함께 지운다.
 
+### 사진·첨부·미리보기 (3-2c 단계 3)
+- D1 `uploads`(path PK, kind image|file, size, original_name, user_id, created_at), `post_uploads`(post_path, upload_path) — migrations/0002_uploads.sql.
+  글 저장 때 그 글이 쓰는 /uploads/… 를 post_uploads 에 다시 기록, 글 삭제 때 uploads 에 있고 다른 글이 안 쓰는 파일만 함께 삭제.
+- 업로드 검사(서버): 이름 형식, 확장자, 크기(사진 10MB·첨부 20MB), 파일 첫 바이트(JPG·PNG·GIF·PDF·ZIP계열·HWP), 같은 이름 있으면 409.
+  글 저장 때 새로 적힌 /uploads/… 가 저장소에 없으면(올리기 실패) 저장을 막는다.
+- 편집기: 사진 붙여넣기(Ctrl+V)·끌어다 놓기·버튼, 첨부 버튼 → 본문 링크. 첨부파일 칸은 본문의 첨부 링크 목록(삭제 = 본문에서 링크 제거).
+- 미리보기: templates/board_view.html 과 같은 마크업·클래스(게시판 감싸는 div·body class 포함)에 홈페이지 CSS(default·font-awesome·base·xeicon·
+  layout·board·res(+영문 layout_en)·게시판 skin style.css)를 https://hanbitinnotech.com 에서 불러와 sandbox iframe 으로 그림(스크립트 없음,
+  상단 메뉴·푸터 제외). PC 1280px 축소 / 모바일 375px. 1100px 이하 화면은 [입력 | 미리보기] 탭.
+- CSP 변경: style-src 에 'unsafe-inline'·https://hanbitinnotech.com, font-src 에 https://hanbitinnotech.com (미리보기의 홈페이지 CSS·본문 style 속성 때문).
+- 화면 시험: Playwright(개발 의존성)로 로컬 `wrangler pages dev` 에서 진행, 스크린샷은 app/test-results/(git 제외).
+
 ### API (3-2c)
 | 메서드·경로 | 설명 |
 |---|---|
