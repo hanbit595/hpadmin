@@ -1,4 +1,6 @@
 // 서버 API 호출 (명세 6절). 쿠키는 같은 주소에서만 자동 전송된다.
+import type { Lang } from './nav';
+
 export interface User {
   username: string;
   displayName: string;
@@ -11,6 +13,33 @@ export interface ApiResult<T> {
   data?: T;
   error?: string;
   lockedUntil?: number;
+}
+
+export interface Counts {
+  notice: number;
+  media: number;
+  library: number;
+  cert: number;
+}
+
+export interface Summary {
+  lang: Lang;
+  counts: Record<Lang, Counts>;
+  popups: { title: string; start: string; end: string; link: string }[];
+  today: string;
+}
+
+export interface DeployStatus {
+  deploy: {
+    state: 'success' | 'running' | 'failure' | 'none' | 'error';
+    label: string;
+    reason?: string;
+    startedAt?: string;
+    updatedAt?: string;
+    commit?: string;
+    url?: string;
+  };
+  commits: { ok: boolean; error?: string; items: { sha: string; message: string; date: string }[] };
 }
 
 async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<ApiResult<T>> {
@@ -39,5 +68,19 @@ export const api = {
   login: (username: string, password: string, remember: boolean) =>
     request<{ user: User }>('POST', '/api/auth/login', { username, password, remember }),
   logout: () => request<object>('POST', '/api/auth/logout', {}),
-  health: () => request<{ message: string; repo: string; branch: string; commit: string; checkedAt: number }>('GET', '/api/health'),
+  summary: (lang: Lang) => request<Summary>('GET', `/api/site/summary?lang=${lang}`),
+  deployStatus: () => request<DeployStatus>('GET', '/api/deploy/status'),
 };
+
+/** 한국 시간 표시: 2026. 11. 17. 오후 3:05 */
+export function kst(iso: string | number | undefined): string {
+  if (!iso) return '';
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso));
+}

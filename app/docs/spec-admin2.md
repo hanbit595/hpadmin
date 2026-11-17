@@ -94,8 +94,32 @@
 | GET /api/auth/me | 예 | 현재 사용자 | 200 `{user: {username, displayName, role}}` / 401 |
 | POST /api/auth/password | 예 | `{currentPassword, newPassword}`, 새 비밀번호 8자 이상 | 200 / 400 |
 | GET /api/health | 예 | GITHUB_TOKEN 으로 hanbit595/hopage main 최신 커밋 번호만 읽음(읽기 전용) | 200 `{message:"연결 정상", commit}` / 401 / 502 |
+| GET /api/site/summary?lang=ko\|en | 예 | (3-2b) 글 수(국문·영문)·인증 건수·현재 팝업(요청 언어). git trees(main, recursive) 1회 + cert.yml(국문·영문)·popups.yml 만 읽음 | 200 `{counts:{ko,en}, popups, today}` / 502 |
+| GET /api/deploy/status | 예 | (3-2b) hopage 최근 Actions 실행 1건(반영 완료/반영 중/반영 실패+이유) + main 최근 커밋 5건 | 200 `{deploy, commits}` |
+| /api/settings/* | 관리자 | (3-2b 자리만, 501) 사이트 설정. 3-2d 에서 구현 | 편집자 403 |
+| /api/users/* | 관리자 | (3-2b 자리만, 501) 직원 계정. 3-2e 에서 구현 | 편집자 403 |
 | 그 밖의 /api/* | - | | 404 |
-3-2c 이후 추가 예정: 게시판·페이지·설정 읽기/저장(서버가 hopage 에 커밋), 업로드, 반영 상태, 기록, 계정 관리.
+3-2c 이후 추가 예정: 게시판·페이지·설정 읽기/저장(서버가 hopage 에 커밋), 업로드, 기록, 계정 관리.
+
+- 관리자 전용 경로(/api/settings, /api/users)는 api/_middleware.ts 한 곳에서 권한을 확인한다(로그인 없음 401, 편집자 403).
+- 글 수: cms/{notice,media,library}/*.md(영문 cms/en/...) 파일 수. 인증 건수: cert.yml items 개수(숨김 포함).
+  현재 팝업: popups.yml 에서 active 이고 오늘(한국 날짜)이 start~end 안인 것.
+- GitHub 응답은 60초 캐시(Cloudflare Cache API + 실행 인스턴스 메모리). 파일 내용(blob)은 sha 기준이라 1시간 캐시.
+  pages.dev 주소에서는 Cache API 가 동작하지 않을 수 있어 메모리 캐시를 함께 쓴다.
+- Actions 상태를 읽으려면 GitHub 토큰에 Actions(Read) 권한이 필요하다. 없으면 "Actions 읽기 권한이 없습니다" 로 안내.
+- 로컬에서 GITHUB_TOKEN 이 없으면 공개 저장소를 토큰 없이 읽는다(시험용, 호출 한도 낮음).
+
+## 6-1. 화면 (3-2b)
+- 주소: `/{lang}` 대시보드, `/{lang}/{메뉴}` (lang = ko|en). 메뉴 키: notice·media·library / cert·history·hanbit·esg·location /
+  menu·site·popups(관리자) / users(관리자). 언어 없는 주소는 기억한 언어(브라우저 localStorage)의 대시보드로 이동.
+- 상단바: HANBIT Innotech 홈페이지 관리자, [국문 관리 | 영문 관리](선택 기억), 홈페이지 보기(국문 https://hanbitinnotech.com,
+  영문 /en/index.html, 새 창), 표시 이름·권한(관리자/편집자), 로그아웃.
+- 왼쪽 메뉴: 대시보드 / 게시판(글 수 표시) / 회사 페이지 / 사이트 설정(관리자) / 직원 계정(관리자).
+  영문 모드는 "회사소식 (News)" 처럼 영문 병기. 편집자는 관리자 메뉴가 보이지 않고, 주소로 들어오면 "관리자만 사용할 수 있는 화면" 안내.
+- 900px 이하: 메뉴를 접고 ☰ 로 여는 서랍(언어 전환·홈페이지 보기·사용자 정보 포함). 375px 가로 스크롤 없음.
+- 대시보드: 인사말 + "저장하면 1~2분 뒤 홈페이지에 반영됩니다", 바로 쓰기 3개(새 소식 쓰기·새 시공사례·인증서 추가),
+  글 수 표(국문·영문), 홈페이지 반영 상태(한국 시간), 최근 수정 5건(커밋 메시지·시각, "누가"는 3-2c 이후), 현재 팝업(선택 언어).
+- 아직 만들지 않은 메뉴는 제목과 "3-2c/3-2d/3-2e 단계에서 만들 화면" 안내만 있는 자리 화면.
 
 ## 7. 대표 계정
 - `app/scripts/create-admin.mjs` : 아이디·표시 이름·비밀번호(화면 표시 없이 2번 입력)를 묻고 같은 PBKDF2 방식으로 해시를 만든 뒤

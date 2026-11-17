@@ -1,19 +1,28 @@
-// /api/* 공통: POST 등 출처 확인, 오류 처리, 보안 헤더 (명세 3절)
+// /api/* 공통: POST 등 출처 확인, 관리자 전용 경로 권한 확인, 오류 처리, 보안 헤더 (명세 3절)
 import { SECURITY_HEADERS, fail, type Env } from '../../server/http';
+import { getSession } from '../../server/session';
+
+/** 관리자(admin)만 쓸 수 있는 API 경로. 편집자(editor)는 403. */
+const ADMIN_ONLY = ['/api/settings', '/api/users'];
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
-  const { request } = ctx;
+  const { request, env } = ctx;
   let res: Response;
 
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     const origin = request.headers.get('Origin');
     if (!origin || origin !== new URL(request.url).origin) {
-      res = fail(403, '허용되지 않은 주소에서 보낸 요청입니다.');
-      return withHeaders(res);
+      return withHeaders(fail(403, '허용되지 않은 주소에서 보낸 요청입니다.'));
     }
   }
 
   try {
+    const path = new URL(request.url).pathname;
+    if (ADMIN_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
+      const user = await getSession(env, request);
+      if (!user) return withHeaders(fail(401, '로그인이 필요합니다.'));
+      if (user.role !== 'admin') return withHeaders(fail(403, '관리자만 사용할 수 있는 기능입니다.'));
+    }
     res = await ctx.next();
   } catch (e) {
     console.error('API 오류', e instanceof Error ? e.message : e);
